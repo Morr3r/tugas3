@@ -1894,16 +1894,10 @@ function MiniGamePanel({
     >
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-2 text-sm text-slate-400">
+          <div className="flex items-center gap-2 text-sm text-slate-400">
             <Gamepad2 className="h-4 w-4" />
             Mini game {activeGameIndex + 1}/{moduleItem.games.length} setelah teori
           </div>
-          <h3 className="break-words text-2xl font-semibold text-white">
-            {activeGame.title}
-          </h3>
-          <p className="mt-2 max-w-3xl leading-7 text-slate-300">
-            {activeGame.prompt}
-          </p>
         </div>
         <div
           className="shrink-0 border px-3 py-2 text-sm"
@@ -1984,6 +1978,15 @@ function MiniGamePanel({
             </button>
           );
         })}
+      </div>
+
+      <div className="mb-4">
+        <h3 className="break-words text-2xl font-semibold text-white">
+          {activeGame.title}
+        </h3>
+        <p className="mt-2 max-w-3xl leading-7 text-slate-300">
+          {activeGame.prompt}
+        </p>
       </div>
 
       <div key={`${activeGame.id}-${gameResetKey}`}>
