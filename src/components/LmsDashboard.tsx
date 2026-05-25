@@ -470,6 +470,35 @@ function useLmsProgress(
           };
         }
 
+        for (const moduleItem of allModules) {
+          const assessment = nextAssessments[moduleItem.id];
+
+          if (!assessment) {
+            continue;
+          }
+
+          const answeredGameIds = new Set([
+            ...assessment.completedGameIds,
+            ...assessment.failedGameIds,
+          ]);
+          const isFinished =
+            Boolean(assessment.finishedAt) ||
+            answeredGameIds.size >= moduleItem.games.length;
+
+          if (!isFinished) {
+            continue;
+          }
+
+          nextProgress[moduleItem.id] = {
+            completed: true,
+            score: Math.round(
+              (assessment.completedGameIds.length / moduleItem.games.length) * 100,
+            ),
+            updatedAt:
+              nextProgress[moduleItem.id]?.updatedAt ?? assessment.updatedAt,
+          };
+        }
+
         setProgress(nextProgress);
         setAssessments(nextAssessments);
         setDatabaseMode(payload.source === "neon" ? "neon" : "demo");

@@ -3,6 +3,7 @@ import { allModules } from "@/lib/modules";
 import {
   readAssessments,
   upsertAssessment,
+  upsertProgress,
   type AssessmentRow,
 } from "@/lib/neon";
 
@@ -16,6 +17,7 @@ const validGameIdsByModule = new Map(
     new Set(moduleItem.games.map((game) => game.id)),
   ]),
 );
+const modulesById = new Map(allModules.map((moduleItem) => [moduleItem.id, moduleItem]));
 
 function normalizeStudentId(value: unknown) {
   if (typeof value !== "string") {
@@ -129,6 +131,12 @@ export async function POST(request: NextRequest) {
     typeof body?.finished_at === "string" && Number.isFinite(Date.parse(body.finished_at))
       ? body.finished_at
       : null;
+  const moduleItem = modulesById.get(moduleId);
+  const answeredGameIds = new Set([...completedGameIds, ...failedGameIds]);
+  const isFinished = Boolean(finishedAt) || answeredGameIds.size >= (moduleItem?.games.length ?? 0);
+  const score = moduleItem
+    ? Math.round((completedGameIds.length / moduleItem.games.length) * 100)
+    : 0;
 
   if (
     !Number.isFinite(attempts) ||
@@ -178,6 +186,15 @@ export async function POST(request: NextRequest) {
         },
         { status: 201 },
       );
+    }
+
+    if (isFinished) {
+      await upsertProgress({
+        studentId,
+        moduleId,
+        completed: true,
+        score,
+      });
     }
 
     return NextResponse.json(
