@@ -2486,7 +2486,6 @@ function MiniGamePanel({
   const [wrongAttempts, setWrongAttempts] = useState(0);
   const [streak, setStreak] = useState(0);
   const [showHint, setShowHint] = useState(false);
-  const [resetNoticeOpen, setResetNoticeOpen] = useState(false);
   const [gameResetKey, setGameResetKey] = useState(0);
   const [isChallengeStarted, setIsChallengeStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(MODULE_GAME_SECONDS);
@@ -2529,7 +2528,6 @@ function MiniGamePanel({
     setTimeLeft(MODULE_GAME_SECONDS);
     setStatus(savedCompletedGameIds.length > 0 ? "success" : "idle");
     setShowHint(false);
-    setResetNoticeOpen(false);
   }
 
   function openHint() {
@@ -2551,7 +2549,6 @@ function MiniGamePanel({
     setStreak(0);
     setShowHint(false);
     setStatus("idle");
-    setResetNoticeOpen(false);
     setGameResetKey((current) => current + 1);
     setIsChallengeStarted(false);
     setTimeLeft(MODULE_GAME_SECONDS);
@@ -2612,7 +2609,7 @@ function MiniGamePanel({
     setWrongAttempts(1);
     setShowHint(false);
     setStatus("error");
-    setResetNoticeOpen(true);
+    onProgress(gameScore, false);
   }
 
   return (
@@ -2696,6 +2693,7 @@ function MiniGamePanel({
         {moduleItem.games.map((game, index) => {
           const isActive = activeGame.id === game.id;
           const isComplete = completedGameIds.includes(game.id);
+          const isFailed = failedGameIds.includes(game.id);
           const isLocked = index > completedGameCount;
 
           return (
@@ -2705,7 +2703,13 @@ function MiniGamePanel({
               disabled={isLocked}
               onClick={() => {
                 setActiveGameId(game.id);
-                setStatus(completedGameIds.includes(game.id) ? "success" : "idle");
+                setStatus(
+                  completedGameIds.includes(game.id)
+                    ? "success"
+                    : failedGameIds.includes(game.id)
+                      ? "error"
+                      : "idle",
+                );
                 setShowHint(false);
               }}
               className={cx(
@@ -2721,6 +2725,7 @@ function MiniGamePanel({
                 {isComplete && (
                   <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: moduleItem.color }} />
                 )}
+                {isFailed && <X className="h-4 w-4 shrink-0 text-rose-200" />}
               </span>
               <span className="line-clamp-2 text-sm font-semibold">{game.title}</span>
             </button>
@@ -2810,7 +2815,10 @@ function MiniGamePanel({
         {status === "error" && (
           <p className="flex items-start gap-2 text-amber-100">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Belum tepat. Soal terkunci karena setiap game hanya punya 1 kesempatan menjawab.</span>
+            <span>
+              Belum tepat. Soal terkunci dan score berhenti di {gameScore}/100 agar kemampuan
+              siswa terlihat sampai titik ini.
+            </span>
           </p>
         )}
         {status === "idle" && !isActiveGameComplete && (
@@ -2855,36 +2863,6 @@ function MiniGamePanel({
               className="mt-5 w-full border border-amber-300/40 bg-amber-300 px-4 py-3 font-semibold text-slate-950 transition hover:bg-amber-200"
             >
               Mengerti
-            </button>
-          </div>
-        </div>
-      )}
-      {resetNoticeOpen && (
-        <div className="fixed inset-0 z-[95] grid place-items-center bg-black/70 px-4 py-6 backdrop-blur-sm">
-          <div
-            className="w-full max-w-md border border-amber-300/25 bg-[#0b0d12] p-5 shadow-2xl"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="module-reset-title"
-          >
-            <div className="mb-4 flex items-center gap-3 text-amber-100">
-              <div className="grid h-10 w-10 shrink-0 place-items-center border border-amber-300/25 bg-amber-300/10">
-                <RotateCcw className="h-5 w-5" />
-              </div>
-              <h3 id="module-reset-title" className="text-xl font-semibold">
-                Coba lagi dari awal
-              </h3>
-            </div>
-            <p className="leading-7 text-slate-300">
-              Jawaban belum tepat. Setiap game hanya punya 1 kesempatan menjawab, jadi progress
-              modul direset dan game kembali ke Game 1.
-            </p>
-            <button
-              type="button"
-              onClick={restartModule}
-              className="mt-5 w-full border border-amber-300/40 bg-amber-300 px-4 py-3 font-semibold text-slate-950 transition hover:bg-amber-200"
-            >
-              Coba lagi
             </button>
           </div>
         </div>
