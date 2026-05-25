@@ -173,8 +173,25 @@ function isModuleUnlocked(moduleId: number, progress: ProgressMap) {
     .every((moduleItem) => progress[moduleItem.id]?.completed);
 }
 
+function isPageRefresh() {
+  if (typeof performance === "undefined") {
+    return false;
+  }
+
+  const [navigationEntry] = performance.getEntriesByType(
+    "navigation",
+  ) as PerformanceNavigationTiming[];
+
+  return navigationEntry?.type === "reload";
+}
+
 function getStoredAuthSession(): AuthSession | null {
   if (typeof window === "undefined") {
+    return null;
+  }
+
+  if (isPageRefresh()) {
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
   }
 
@@ -414,7 +431,7 @@ export function LmsDashboard() {
         {isLoadingProgress && (
           <LoadingScreen
             label="Memuat progress"
-            detail="Mengambil data modul terbaru dari backend."
+            detail="Mengambil data modul terbaru...."
           />
         )}
         {transitionLoading && (
@@ -1087,7 +1104,7 @@ function CourseCard({
             <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0_45%,rgba(255,255,255,0.1)_45%_48%,transparent_48%_100%)] bg-[size:34px_34px]" />
             <div className="absolute left-5 top-5 inline-flex items-center gap-2 border border-white/15 bg-black/30 px-3 py-2 text-sm text-emerald-100">
               <Code2 className="h-4 w-4" />
-              Python Track
+              Python
             </div>
             <div className="absolute bottom-5 left-5 right-5">
               <p className="text-sm text-emerald-100/80">XII RPL</p>
