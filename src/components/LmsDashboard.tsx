@@ -717,9 +717,7 @@ export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseS
               <TutorialVideoPanel key={activeModule.id} moduleItem={activeModule} />
 
               <MiniGamePanel
-                key={`${activeModule.id}-${progress[activeModule.id]?.score ?? "new"}-${
-                  progress[activeModule.id]?.completed ? "done" : "open"
-                }`}
+                key={activeModule.id}
                 hintUses={hintUsesByModule[activeModule.id] ?? 0}
                 moduleItem={activeModule}
                 progress={progress[activeModule.id]}
@@ -2432,7 +2430,11 @@ function MiniGamePanel({
   const activeGame =
     moduleItem.games.find((game) => game.id === activeGameId) ?? moduleItem.games[0];
   const activeGameIndex = moduleItem.games.findIndex((game) => game.id === activeGame.id);
-  const completedGameCount = completedGameIds.length;
+  const savedCompletedGameIds = getSeededGameIds(moduleItem, progress);
+  const effectiveCompletedGameIds = isChallengeStarted
+    ? completedGameIds
+    : savedCompletedGameIds;
+  const completedGameCount = effectiveCompletedGameIds.length;
   const gameScore = Math.round((completedGameCount / moduleItem.games.length) * 100);
   const isActiveGameComplete = completedGameIds.includes(activeGame.id);
   const isTimeUp = timeLeft <= 0 && !progress?.completed;
@@ -2452,9 +2454,14 @@ function MiniGamePanel({
   }, [isChallengeStarted, isTimeUp, progress?.completed]);
 
   function startChallenge() {
+    setCompletedGameIds(savedCompletedGameIds);
+    setActiveGameId(
+      moduleItem.games[savedCompletedGameIds.length]?.id ??
+        moduleItem.games[moduleItem.games.length - 1].id,
+    );
     setIsChallengeStarted(true);
     setTimeLeft(MODULE_GAME_SECONDS);
-    setStatus("idle");
+    setStatus(savedCompletedGameIds.length > 0 ? "success" : "idle");
     setShowHint(false);
     setResetNoticeOpen(false);
   }
@@ -2562,12 +2569,6 @@ function MiniGamePanel({
             <Gamepad2 className="h-4 w-4" />
             Mini game {activeGameIndex + 1}/{moduleItem.games.length} setelah teori
           </div>
-          <h3 className="mt-2 text-2xl font-semibold text-white">
-            Arena Evaluasi Modul
-          </h3>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400">
-            Soal akan terbuka setelah sesi dimulai. Selesaikan seluruh game dalam 15 menit.
-          </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <div
@@ -2594,13 +2595,7 @@ function MiniGamePanel({
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 md:grid-cols-5">
-        <MiniGameStat
-          icon={ShieldCheck}
-          label="Sesi"
-          value={isChallengeStarted ? (isTimeUp ? "Waktu habis" : "Aktif") : "Belum mulai"}
-          color={isChallengeStarted && !isTimeUp ? moduleItem.color : "#94a3b8"}
-        />
+      <div className="mb-5 grid gap-3 md:grid-cols-4">
         <MiniGameStat icon={Award} label="Streak" value={`${streak} benar`} color={moduleItem.color} />
         <MiniGameStat icon={Timer} label="Percobaan" value={`${attempts} run`} color="#ffd166" />
         <MiniGameStat
@@ -2870,10 +2865,6 @@ function MiniGameStartPanel({
           <h3 className="max-w-3xl text-3xl font-semibold text-white md:text-4xl">
             Siap mulai tantangan {moduleItem.subtitle}?
           </h3>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-            Soal sengaja disembunyikan sampai sesi dimulai. Setelah tombol mulai ditekan,
-            timer 15 menit berjalan dan semua jawaban akan dihitung sebagai percobaan modul.
-          </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="border border-white/10 bg-black/25 p-3">
