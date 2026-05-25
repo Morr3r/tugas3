@@ -2481,6 +2481,7 @@ function MiniGamePanel({
   const [completedGameIds, setCompletedGameIds] = useState<string[]>(
     initialCompletedGameIds,
   );
+  const [failedGameIds, setFailedGameIds] = useState<string[]>([]);
   const [attempts, setAttempts] = useState(0);
   const [wrongAttempts, setWrongAttempts] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -2503,6 +2504,7 @@ function MiniGamePanel({
   const isTimeUp = timeLeft <= 0 && !progress?.completed;
   const remainingHints = Math.max(0, MAX_HINTS_PER_MODULE - hintUses);
   const canOpenHint = remainingHints > 0 && isChallengeStarted && !isTimeUp;
+  const isActiveGameLocked = failedGameIds.includes(activeGame.id);
 
   useEffect(() => {
     if (!isChallengeStarted || isTimeUp || progress?.completed) {
@@ -2518,6 +2520,7 @@ function MiniGamePanel({
 
   function startChallenge() {
     setCompletedGameIds(savedCompletedGameIds);
+    setFailedGameIds([]);
     setActiveGameId(
       moduleItem.games[savedCompletedGameIds.length]?.id ??
         moduleItem.games[moduleItem.games.length - 1].id,
@@ -2541,6 +2544,7 @@ function MiniGamePanel({
 
   function restartModule() {
     setCompletedGameIds([]);
+    setFailedGameIds([]);
     setActiveGameId(moduleItem.games[0].id);
     setAttempts(0);
     setWrongAttempts(0);
@@ -2600,25 +2604,15 @@ function MiniGamePanel({
       return;
     }
 
+    setFailedGameIds((current) =>
+      current.includes(activeGame.id) ? current : [...current, activeGame.id],
+    );
     setAttempts((current) => current + 1);
     setStreak(0);
-    setWrongAttempts((current) => {
-      const nextWrongAttempts = current + 1;
-
-      if (nextWrongAttempts >= 3) {
-        setShowHint(false);
-        setStatus("error");
-        setResetNoticeOpen(true);
-        return nextWrongAttempts;
-      }
-
-      if (!showHint && onUseHint()) {
-        setShowHint(true);
-      }
-      setStatus("error");
-
-      return nextWrongAttempts;
-    });
+    setWrongAttempts(1);
+    setShowHint(false);
+    setStatus("error");
+    setResetNoticeOpen(true);
   }
 
   return (
@@ -2664,7 +2658,7 @@ function MiniGamePanel({
         <MiniGameStat
           icon={AlertCircle}
           label="Salah"
-          value={`${wrongAttempts}/3`}
+          value={`${wrongAttempts}/1`}
           color="#74d4ff"
         />
         <button
@@ -2749,6 +2743,7 @@ function MiniGamePanel({
             game={activeGame}
             color={moduleItem.color}
             isComplete={isActiveGameComplete}
+            isLocked={isActiveGameLocked}
             onComplete={completeGame}
             onMiss={missGame}
           />
@@ -2758,6 +2753,7 @@ function MiniGamePanel({
             game={activeGame}
             color={moduleItem.color}
             isComplete={isActiveGameComplete}
+            isLocked={isActiveGameLocked}
             onComplete={completeGame}
             onMiss={missGame}
           />
@@ -2767,6 +2763,7 @@ function MiniGamePanel({
             game={activeGame}
             color={moduleItem.color}
             isComplete={isActiveGameComplete}
+            isLocked={isActiveGameLocked}
             onComplete={completeGame}
             onMiss={missGame}
           />
@@ -2776,6 +2773,7 @@ function MiniGamePanel({
             game={activeGame}
             color={moduleItem.color}
             isComplete={isActiveGameComplete}
+            isLocked={isActiveGameLocked}
             onComplete={completeGame}
             onMiss={missGame}
           />
@@ -2785,6 +2783,7 @@ function MiniGamePanel({
             game={activeGame}
             color={moduleItem.color}
             isComplete={isActiveGameComplete}
+            isLocked={isActiveGameLocked}
             onComplete={completeGame}
             onMiss={missGame}
           />
@@ -2811,7 +2810,7 @@ function MiniGamePanel({
         {status === "error" && (
           <p className="flex items-start gap-2 text-amber-100">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Belum tepat. Coba ulang dengan fokus ke bagian yang berubah.</span>
+            <span>Belum tepat. Soal terkunci karena setiap game hanya punya 1 kesempatan menjawab.</span>
           </p>
         )}
         {status === "idle" && !isActiveGameComplete && (
@@ -2877,8 +2876,8 @@ function MiniGamePanel({
               </h3>
             </div>
             <p className="leading-7 text-slate-300">
-              Kamu sudah salah 3 kali di modul ini. Progress modul direset dan game kembali ke
-              Game 1.
+              Jawaban belum tepat. Setiap game hanya punya 1 kesempatan menjawab, jadi progress
+              modul direset dan game kembali ke Game 1.
             </p>
             <button
               type="button"
@@ -2963,7 +2962,8 @@ function MiniGameStartPanel({
             </div>
           </div>
           <p className="text-sm leading-6 text-slate-400">
-            Kerjakan berurutan. Game berikutnya terbuka setelah game aktif selesai.
+            Kerjakan berurutan. Setiap game hanya punya 1 kesempatan menjawab, dan game
+            berikutnya terbuka setelah game aktif selesai.
           </p>
           <button
             type="button"
@@ -3050,12 +3050,14 @@ function SequenceGameView({
   game,
   color,
   isComplete,
+  isLocked,
   onComplete,
   onMiss,
 }: {
   game: SequenceGame;
   color: string;
   isComplete: boolean;
+  isLocked: boolean;
   onComplete: () => void;
   onMiss: () => void;
 }) {
@@ -3065,7 +3067,7 @@ function SequenceGameView({
   const [lastResult, setLastResult] = useState<"idle" | "wrong" | "correct">("idle");
 
   const remaining = bankOrder.filter((option) => !selected.includes(option));
-  const isReadOnly = locked || isComplete;
+  const isReadOnly = locked || isComplete || isLocked;
   const canCheck = selected.length === game.answer.length && !isReadOnly;
   const progressValue = Math.round((selected.length / game.answer.length) * 100);
 
@@ -3107,6 +3109,7 @@ function SequenceGameView({
       setLastResult("correct");
       onComplete();
     } else {
+      setLocked(true);
       setLastResult("wrong");
       onMiss();
     }
@@ -3222,7 +3225,7 @@ function SequenceGameView({
         </div>
         {lastResult === "wrong" && (
           <p className="mt-3 border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-100">
-            Urutan belum sesuai. Coba geser token tanpa mengulang dari awal.
+            Urutan belum sesuai. Soal terkunci karena kesempatan menjawab hanya 1 kali.
           </p>
         )}
         <button
@@ -3244,12 +3247,14 @@ function ChoiceGameView({
   game,
   color,
   isComplete,
+  isLocked,
   onComplete,
   onMiss,
 }: {
   game: ChoiceGame;
   color: string;
   isComplete: boolean;
+  isLocked: boolean;
   onComplete: () => void;
   onMiss: () => void;
 }) {
@@ -3257,7 +3262,7 @@ function ChoiceGameView({
   const [selected, setSelected] = useState<string | null>(null);
   const [wrongOptions, setWrongOptions] = useState<string[]>([]);
   const [locked, setLocked] = useState(false);
-  const isReadOnly = locked || isComplete;
+  const isReadOnly = locked || isComplete || isLocked;
 
   function choose(option: string) {
     if (isReadOnly || wrongOptions.includes(option)) {
@@ -3269,6 +3274,7 @@ function ChoiceGameView({
       setLocked(true);
       onComplete();
     } else {
+      setLocked(true);
       setWrongOptions((items) => [...items, option]);
       onMiss();
     }
@@ -3322,19 +3328,21 @@ function LocateGameView({
   game,
   color,
   isComplete,
+  isLocked,
   onComplete,
   onMiss,
 }: {
   game: LocateGame;
   color: string;
   isComplete: boolean;
+  isLocked: boolean;
   onComplete: () => void;
   onMiss: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [wrongLineIds, setWrongLineIds] = useState<string[]>([]);
   const [locked, setLocked] = useState(false);
-  const isReadOnly = locked || isComplete;
+  const isReadOnly = locked || isComplete || isLocked;
 
   function choose(lineId: string) {
     if (isReadOnly || wrongLineIds.includes(lineId)) {
@@ -3346,6 +3354,7 @@ function LocateGameView({
       setLocked(true);
       onComplete();
     } else {
+      setLocked(true);
       setWrongLineIds((items) => [...items, lineId]);
       onMiss();
     }
@@ -3409,12 +3418,14 @@ function OutputGameView({
   game,
   color,
   isComplete,
+  isLocked,
   onComplete,
   onMiss,
 }: {
   game: OutputGame;
   color: string;
   isComplete: boolean;
+  isLocked: boolean;
   onComplete: () => void;
   onMiss: () => void;
 }) {
@@ -3422,7 +3433,7 @@ function OutputGameView({
   const [selected, setSelected] = useState<string | null>(null);
   const [wrongOptions, setWrongOptions] = useState<string[]>([]);
   const [locked, setLocked] = useState(false);
-  const isReadOnly = locked || isComplete;
+  const isReadOnly = locked || isComplete || isLocked;
 
   function choose(option: string) {
     if (isReadOnly || wrongOptions.includes(option)) {
@@ -3434,6 +3445,7 @@ function OutputGameView({
       setLocked(true);
       onComplete();
     } else {
+      setLocked(true);
       setWrongOptions((items) => [...items, option]);
       onMiss();
     }
@@ -3510,19 +3522,21 @@ function LiveCodeGameView({
   game,
   color,
   isComplete,
+  isLocked,
   onComplete,
   onMiss,
 }: {
   game: LiveCodeGame;
   color: string;
   isComplete: boolean;
+  isLocked: boolean;
   onComplete: () => void;
   onMiss: () => void;
 }) {
   const [code, setCode] = useState(game.starter);
   const [attempted, setAttempted] = useState(false);
   const [locked, setLocked] = useState(false);
-  const isReadOnly = locked || isComplete;
+  const isReadOnly = locked || isComplete || isLocked;
 
   const checkResults = game.checks.map((check) => ({
     ...check,
@@ -3545,6 +3559,7 @@ function LiveCodeGameView({
       setLocked(true);
       onComplete();
     } else {
+      setLocked(true);
       onMiss();
     }
   }
@@ -3660,13 +3675,13 @@ function LiveCodeGameView({
             Console
           </div>
           <p className="font-mono text-sm text-slate-300">
-            {isReadOnly
+            {isComplete || (attempted && allPassed)
               ? game.successMessage
               : attempted
-                ? allPassed
-                  ? "Semua syarat valid."
-                  : "Validator menemukan syarat yang belum terpenuhi."
-                : "Validator siap mengecek kode."}
+                ? "Validator menemukan syarat yang belum terpenuhi. Soal terkunci."
+                : isReadOnly
+                  ? "Soal terkunci karena kesempatan menjawab sudah dipakai."
+                  : "Validator siap mengecek kode."}
           </p>
         </div>
 
