@@ -1,6 +1,7 @@
 "use client";
 
 import confetti from "canvas-confetti";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   AlertCircle,
@@ -109,6 +110,57 @@ function shuffleItems<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
+function LoadingScreen({
+  label,
+  detail = "Menyiapkan pengalaman belajar...",
+}: {
+  label: string;
+  detail?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22 }}
+      className="fixed inset-0 z-[200] grid place-items-center bg-[#05070b]/82 px-4 text-slate-100 backdrop-blur-xl"
+      role="status"
+      aria-live="polite"
+    >
+      <motion.div
+        initial={{ y: 18, scale: 0.96, opacity: 0 }}
+        animate={{ y: 0, scale: 1, opacity: 1 }}
+        exit={{ y: 10, scale: 0.98, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 220, damping: 24 }}
+        className="relative w-full max-w-sm overflow-hidden border border-white/10 bg-white/[0.065] p-6 shadow-2xl shadow-black/45"
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(116,212,255,0.22),transparent_30%),radial-gradient(circle_at_82%_76%,rgba(55,229,165,0.18),transparent_30%)]" />
+        <div className="relative">
+          <div className="mx-auto mb-5 grid h-20 w-20 place-items-center border border-sky-300/25 bg-sky-300/10">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+              className="h-11 w-11 border-2 border-sky-200/20 border-t-sky-200"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-xs uppercase text-slate-500">System process</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">{label}</h2>
+            <p className="mt-3 leading-6 text-slate-300">{detail}</p>
+          </div>
+          <div className="mt-5 h-1.5 overflow-hidden bg-white/10">
+            <motion.div
+              animate={{ x: ["-40%", "140%"] }}
+              transition={{ duration: 1.25, repeat: Infinity, ease: "easeInOut" }}
+              className="h-full w-1/2 bg-sky-300"
+            />
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function getAccentStyle(color: string): CSSProperties {
   return {
     "--accent": color,
@@ -192,6 +244,7 @@ function useAuthSession() {
 function useLmsProgress(studentId: string | null | undefined) {
   const [progress, setProgress] = useState<ProgressMap>({});
   const [databaseMode, setDatabaseMode] = useState<DatabaseMode>("checking");
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const completedCount = modules.filter(
     (item) => progress[item.id]?.completed,
@@ -214,6 +267,8 @@ function useLmsProgress(studentId: string | null | undefined) {
     let cancelled = false;
 
     async function loadProgress() {
+      setIsLoadingProgress(true);
+
       try {
         const response = await fetch(`/api/progress?student_id=${encodeURIComponent(activeStudentId)}`, {
           cache: "no-store",
@@ -242,6 +297,10 @@ function useLmsProgress(studentId: string | null | undefined) {
       } catch {
         if (!cancelled) {
           setDatabaseMode("error");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingProgress(false);
         }
       }
     }
@@ -300,6 +359,7 @@ function useLmsProgress(studentId: string | null | undefined) {
     completedCount,
     completionRate,
     databaseMode,
+    isLoadingProgress,
     progress,
     saveProgress,
     setSyncState,
@@ -310,7 +370,7 @@ function useLmsProgress(studentId: string | null | undefined) {
 export function LmsDashboard() {
   const router = useRouter();
   const { isAuthenticated, isReady, logout, session } = useAuthSession();
-  const { completedCount, completionRate } = useLmsProgress(session?.studentId);
+  const { completedCount, completionRate, isLoadingProgress } = useLmsProgress(session?.studentId);
   const [guideOpen, setGuideOpen] = useState(false);
 
   function handleLogout() {
@@ -330,6 +390,14 @@ export function LmsDashboard() {
 
   return (
     <>
+      <AnimatePresence>
+        {isLoadingProgress && (
+          <LoadingScreen
+            label="Memuat progress"
+            detail="Mengambil data modul terbaru dari backend."
+          />
+        )}
+      </AnimatePresence>
       <CourseOverview
         completedCount={completedCount}
         completionRate={completionRate}
@@ -379,6 +447,7 @@ export function LmsModuleDashboard() {
     averageScore,
     completedCount,
     completionRate,
+    isLoadingProgress,
     progress,
     saveProgress,
     setSyncState,
@@ -428,6 +497,20 @@ export function LmsModuleDashboard() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#08090e] text-slate-100">
+      <AnimatePresence>
+        {isLoadingProgress && (
+          <LoadingScreen
+            label="Memuat modul"
+            detail="Sinkronisasi progress belajar sedang diproses."
+          />
+        )}
+        {syncState === "saving" && (
+          <LoadingScreen
+            label="Menyimpan progress"
+            detail="Jawaban benar sedang disimpan ke backend."
+          />
+        )}
+      </AnimatePresence>
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(55,229,165,0.18),transparent_30%),radial-gradient(circle_at_82%_8%,rgba(116,212,255,0.16),transparent_26%),linear-gradient(135deg,rgba(255,122,144,0.08),transparent_45%)]" />
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:44px_44px] opacity-35" />
 
@@ -563,6 +646,14 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#08090e] text-slate-100">
+      <AnimatePresence>
+        {isSubmitting && (
+          <LoadingScreen
+            label="Memeriksa akun"
+            detail="Autentikasi sedang diproses melalui backend."
+          />
+        )}
+      </AnimatePresence>
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(55,229,165,0.18),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(94,199,255,0.18),transparent_26%),linear-gradient(135deg,rgba(255,122,144,0.08),transparent_45%)]" />
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:44px_44px] opacity-35" />
 
