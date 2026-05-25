@@ -954,12 +954,6 @@ function CourseCard({
               <span className="border border-white/10 bg-black/25 px-3 py-1 text-sm text-slate-300">
                 8 modul
               </span>
-              <span className="border border-white/10 bg-black/25 px-3 py-1 text-sm text-slate-300">
-                40 mini game
-              </span>
-              <span className="border border-white/10 bg-black/25 px-3 py-1 text-sm text-slate-300">
-                Live coding
-              </span>
             </div>
             <h2 className="text-3xl font-semibold text-white">Pemrograman Web</h2>
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">
@@ -1519,8 +1513,6 @@ function ModuleStage({
   completionRate: number;
   averageScore: number;
 }) {
-  const Icon = moduleIcons[moduleItem.icon];
-
   return (
     <section
       className="relative overflow-hidden border border-white/10 bg-white/[0.06] p-4 backdrop-blur-xl md:p-5"
@@ -1532,25 +1524,6 @@ function ModuleStage({
       />
       <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
         <div className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span
-              className="inline-flex items-center gap-2 border px-3 py-1 text-sm text-white"
-              style={{
-                borderColor: `${moduleItem.color}66`,
-                background: `${moduleItem.color}16`,
-              }}
-            >
-              <Icon className="h-4 w-4" />
-              {moduleItem.level}
-            </span>
-            <span className="border border-white/10 bg-black/20 px-3 py-1 text-sm text-slate-300">
-              {moduleItem.minutes} menit
-            </span>
-            <span className="border border-white/10 bg-black/20 px-3 py-1 text-sm text-slate-300">
-              {moduleItem.games.length} mini game aktif
-            </span>
-          </div>
-
           <p className="text-sm text-slate-400">{moduleItem.title}</p>
           <h2 className="mt-1 max-w-3xl break-words text-3xl font-semibold text-white md:text-4xl">
             {moduleItem.subtitle}
