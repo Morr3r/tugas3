@@ -17,9 +17,9 @@ export const metadata: Metadata = {
   description:
     "Learning Management System interaktif untuk pembelajaran Python dan Flutter kelas XII RPL SMKN 13 Bandung.",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 };
 

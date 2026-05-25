@@ -1032,7 +1032,6 @@ function CourseOverview({
               <span className="grid h-8 w-8 place-items-center border border-sky-300/35 bg-sky-300/10 text-sky-100">
                 <UserRound className="h-4 w-4" />
               </span>
-              <span className="hidden text-sm font-semibold sm:inline">Profile</span>
               <ChevronDown
                 className={cx(
                   "h-4 w-4 text-slate-500 transition",
@@ -1449,7 +1448,6 @@ function TopBar({
             <span className="grid h-8 w-8 place-items-center border border-sky-300/35 bg-sky-300/10 text-sky-100">
               <UserRound className="h-4 w-4" />
             </span>
-            <span className="hidden text-sm font-semibold sm:inline">Profile</span>
             <ChevronDown
               className={cx(
                 "h-4 w-4 text-slate-500 transition",
