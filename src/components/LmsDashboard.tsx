@@ -41,7 +41,6 @@ import {
   Send,
   ShieldCheck,
   Shuffle,
-  Sparkles,
   Target,
   TerminalSquare,
   Timer,
@@ -444,7 +443,7 @@ export function LmsModuleDashboard() {
       <div
         className={cx(
           "relative mx-auto min-h-screen w-full max-w-[1520px] px-4 py-4 transition-[padding] duration-300 lg:px-6",
-          sidebarMinimized ? "lg:pl-[112px]" : "lg:pl-[360px]",
+          sidebarMinimized ? "lg:pl-[96px]" : "lg:pl-[344px]",
         )}
       >
         <section className="min-w-0">
@@ -1319,12 +1318,9 @@ function Sidebar({
   return (
     <aside
       className={cx(
-        "fixed bottom-4 top-4 z-40 hidden flex-col gap-4 overflow-y-auto border border-white/10 bg-black/45 shadow-2xl backdrop-blur-xl transition-[width,padding] duration-300 lg:flex",
+        "fixed bottom-4 left-4 top-4 z-40 hidden flex-col gap-4 overflow-y-auto border border-white/10 bg-black/45 shadow-2xl backdrop-blur-xl transition-[width,padding] duration-300 lg:flex",
         minimized ? "w-20 p-3" : "w-80 p-4",
       )}
-      style={{
-        left: "max(1.5rem, calc((100vw - 1520px) / 2 + 1.5rem))",
-      }}
     >
       <div className={cx("flex items-center", minimized ? "justify-center" : "justify-between")}>
         {!minimized && (
@@ -1544,7 +1540,6 @@ function ModuleStage({
 
           <div className="mt-5 border border-white/10 bg-black/25 p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
-              <Sparkles className="h-4 w-4 text-amber-200" />
               Misi Praktik
             </div>
             <p className="leading-7 text-slate-300">{moduleItem.mission}</p>
