@@ -161,6 +161,60 @@ function LoadingScreen({
   );
 }
 
+function ProgrammerBackground({
+  variant = "module",
+}: {
+  variant?: "login" | "dashboard" | "module";
+}) {
+  const codeTokens =
+    variant === "login"
+      ? ["auth()", "POST /login", "session", "JWT", "hash", "200 OK"]
+      : variant === "dashboard"
+        ? ["modules.map()", "progress", "score", "course.id", "sync", "8/8"]
+        : ["def main():", "print()", "for item in data:", "return JSON", "API", "debug"];
+  const tokenPositions = [
+    ["8%", "14%"],
+    ["66%", "12%"],
+    ["18%", "44%"],
+    ["74%", "46%"],
+    ["10%", "76%"],
+    ["58%", "72%"],
+  ];
+
+  return (
+    <div className={cx("programmer-bg", `programmer-bg-${variant}`)} aria-hidden="true">
+      <div className="programmer-bg-grid" />
+      <div className="programmer-bg-scan" />
+      <div className="programmer-bg-circuit">
+        <span className="programmer-line programmer-line-1" />
+        <span className="programmer-line programmer-line-2" />
+        <span className="programmer-line programmer-line-3" />
+        <span className="programmer-line programmer-line-4" />
+        <span className="programmer-node programmer-node-1" />
+        <span className="programmer-node programmer-node-2" />
+        <span className="programmer-node programmer-node-3" />
+      </div>
+      <div className="programmer-bg-code">
+        {codeTokens.map((token, index) => (
+          <span
+            key={token}
+            className="programmer-token"
+            style={
+              {
+                "--token-index": index,
+                "--token-left": tokenPositions[index][0],
+                "--token-top": tokenPositions[index][1],
+              } as CSSProperties
+            }
+          >
+            {token}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function getAccentStyle(color: string): CSSProperties {
   return {
     "--accent": color,
@@ -584,8 +638,7 @@ export function LmsModuleDashboard() {
           />
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(55,229,165,0.18),transparent_30%),radial-gradient(circle_at_82%_8%,rgba(116,212,255,0.16),transparent_26%),linear-gradient(135deg,rgba(255,122,144,0.08),transparent_45%)]" />
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:44px_44px] opacity-35" />
+      <ProgrammerBackground variant="module" />
 
       <Sidebar
         activeId={activeId}
@@ -668,8 +721,9 @@ export function LmsModuleDashboard() {
 
 function RouteRedirectScreen({ label }: { label: string }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-[#08090e] text-slate-100">
-      <div className="border border-white/10 bg-white/[0.055] px-5 py-4 text-sm text-slate-300 backdrop-blur-xl">
+    <main className="grid min-h-screen place-items-center overflow-hidden bg-[#08090e] text-slate-100">
+      <ProgrammerBackground variant="login" />
+      <div className="relative border border-white/10 bg-white/[0.055] px-5 py-4 text-sm text-slate-300 backdrop-blur-xl">
         {label}
       </div>
     </main>
@@ -728,8 +782,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
           />
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(55,229,165,0.18),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(94,199,255,0.18),transparent_26%),linear-gradient(135deg,rgba(255,122,144,0.08),transparent_45%)]" />
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:44px_44px] opacity-35" />
+      <ProgrammerBackground variant="login" />
 
       <section className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-8">
         <div className="grid w-full overflow-hidden border border-white/10 bg-white/[0.055] shadow-2xl backdrop-blur-xl lg:min-h-[640px] lg:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]">
@@ -914,8 +967,7 @@ function CourseOverview({
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#08090e] text-slate-100">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(55,229,165,0.18),transparent_28%),radial-gradient(circle_at_78%_16%,rgba(94,199,255,0.18),transparent_25%),linear-gradient(135deg,rgba(255,122,144,0.08),transparent_42%)]" />
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:46px_46px] opacity-30" />
+      <ProgrammerBackground variant="dashboard" />
 
       <div className="relative mx-auto min-h-screen w-full max-w-7xl px-4 py-5 md:px-6">
         <header className="relative z-50 mb-6 flex flex-col gap-4 border border-white/10 bg-white/[0.055] p-4 backdrop-blur-xl md:flex-row md:items-center md:justify-between">
@@ -1830,14 +1882,9 @@ function MiniGamePanel({
   const gameScore = Math.round((completedGameCount / moduleItem.games.length) * 100);
   const isActiveGameComplete = completedGameIds.includes(activeGame.id);
   const remainingHints = Math.max(0, MAX_HINTS_PER_MODULE - hintUses);
-  const canOpenHint = showHint || remainingHints > 0;
+  const canOpenHint = remainingHints > 0;
 
-  function toggleHint() {
-    if (showHint) {
-      setShowHint(false);
-      return;
-    }
-
+  function openHint() {
     if (onUseHint()) {
       setShowHint(true);
     }
@@ -1951,22 +1998,19 @@ function MiniGamePanel({
         <button
           type="button"
           disabled={!canOpenHint}
-          onClick={toggleHint}
+          onClick={openHint}
           className={cx(
             "flex min-h-20 items-center gap-3 border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-55",
-            showHint
-              ? "border-amber-300/35 bg-amber-300/10 text-amber-100"
-              : canOpenHint
+            canOpenHint
                 ? "border-white/10 bg-black/20 text-slate-300 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.075]"
                 : "border-white/5 bg-black/20 text-slate-600",
           )}
-          aria-pressed={showHint}
         >
           <Lightbulb className="h-5 w-5 shrink-0" />
           <span>
             <span className="block text-xs uppercase text-slate-500">Hint</span>
             <span className="block font-semibold">
-              {showHint ? "Terbuka" : remainingHints > 0 ? `${remainingHints} tersisa` : "Habis"}
+              {remainingHints > 0 ? `${remainingHints} tersisa` : "Habis"}
             </span>
           </span>
         </button>
@@ -2091,16 +2135,47 @@ function MiniGamePanel({
         {status === "idle" && !isActiveGameComplete && (
           <p>Selesaikan game berurutan untuk membuka semua tantangan modul.</p>
         )}
-        {showHint && (
-          <div className="mt-3 border border-amber-300/20 bg-black/20 p-3 text-amber-50">
-            <div className="mb-1 flex items-center gap-2 font-semibold">
-              <Lightbulb className="h-4 w-4" />
-              Hint aktif
-            </div>
-            <p className="leading-6">{activeGame.hint}</p>
-          </div>
-        )}
       </div>
+      {showHint && (
+        <div className="fixed inset-0 z-[95] grid place-items-center bg-black/70 px-4 py-6 backdrop-blur-sm">
+          <div
+            className="w-full max-w-md border border-amber-300/25 bg-[#0b0d12] p-5 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="hint-modal-title"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3 text-amber-100">
+                <div className="grid h-10 w-10 shrink-0 place-items-center border border-amber-300/25 bg-amber-300/10">
+                  <Lightbulb className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs uppercase text-slate-500">Hint aktif</p>
+                  <h3 id="hint-modal-title" className="break-words text-xl font-semibold text-white">
+                    {activeGame.title}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHint(false)}
+                className="grid h-9 w-9 shrink-0 place-items-center border border-white/10 bg-white/[0.055] text-slate-300 transition hover:border-white/25 hover:bg-white/[0.1] hover:text-white"
+                aria-label="Tutup hint"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="leading-7 text-slate-300">{activeGame.hint}</p>
+            <button
+              type="button"
+              onClick={() => setShowHint(false)}
+              className="mt-5 w-full border border-amber-300/40 bg-amber-300 px-4 py-3 font-semibold text-slate-950 transition hover:bg-amber-200"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
       {resetNoticeOpen && (
         <div className="fixed inset-0 z-[95] grid place-items-center bg-black/70 px-4 py-6 backdrop-blur-sm">
           <div
