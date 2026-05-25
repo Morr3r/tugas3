@@ -532,7 +532,7 @@ print(kali(3, 4))`,
     def ringkasan(self):
         return f"{self.nama} memakai {self.stack}"
 
-api = Proyek("LMS Python", "Next.js dan NeonDB")
+api = Proyek("LMS")
 print(api.ringkasan())`,
     mission:
       "Representasikan proyek siswa sebagai object yang punya nama, stack, dan ringkasan.",
@@ -846,7 +846,7 @@ except ZeroDivisionError:
 
 print(payload["student_id"])`,
     mission:
-      "Rancang endpoint progress belajar yang bisa disimpan ke NeonDB.",
+      "Rancang endpoint progress belajar yang bisa disimpan ke Database.",
     games: [
       {
         id: "m8-choice",

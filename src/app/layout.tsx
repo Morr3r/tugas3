@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LMS Python XII RPL | SMKN 13 Bandung",
+  title: "LMS XII RPL | SMKN 13 Bandung",
   description:
     "Learning Management System interaktif untuk pembelajaran Python kelas XII RPL SMKN 13 Bandung.",
 };

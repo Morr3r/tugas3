@@ -527,6 +527,14 @@ export function LmsModuleDashboard() {
     return true;
   }
 
+  function resetModuleHints(moduleId: number) {
+    setHintUsesByModule((current) => {
+      const nextHints = { ...current };
+      delete nextHints[moduleId];
+      return nextHints;
+    });
+  }
+
   useEffect(() => {
     if (isReady && !isAuthenticated) {
       router.replace("/login");
@@ -618,6 +626,7 @@ export function LmsModuleDashboard() {
                 moduleItem={activeModule}
                 progress={progress[activeModule.id]}
                 onUseHint={() => requestModuleHint(activeModule.id)}
+                onResetHints={() => resetModuleHints(activeModule.id)}
                 onProgress={(score, completed) =>
                   saveProgress(activeModule.id, score, completed)
                 }
@@ -1010,11 +1019,10 @@ function CourseOverview({
                 <div>
                   <p className="text-sm uppercase text-slate-500">Learning cockpit</p>
                   <h2 className="mt-2 max-w-3xl text-4xl font-semibold leading-tight text-white md:text-5xl">
-                    Pilih ruang belajar untuk mulai eksplorasi Python.
+                    Pilih ruang belajar untuk mulai belajar bahasa pemrograman.
                   </h2>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                    Portal ini dibuat khusus untuk siswa XII RPL dengan materi Python,
-                    mini game, dan live coding.
+                    Portal ini dibuat khusus untuk siswa XII RPL dengan course Pemrograman Web yang berisi 8 modul interaktif lengkap dengan mini game dan live coding.
                   </p>
                 </div>
                 <div className="border border-white/10 bg-black/25 p-4">
@@ -1096,7 +1104,7 @@ function CourseCard({
             <h2 className="text-3xl font-semibold text-white">Pemrograman Web</h2>
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">
               Kelas Python untuk membangun fondasi pemrograman web, mulai dari
-              sintaks dasar sampai API mini project dengan progress berbasis NeonDB.
+              sintaks dasar sampai API mini project.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <MetricTile icon={BrainCircuit} label="Level" value="XII RPL" />
@@ -1186,7 +1194,7 @@ function GuideModal({
               Panduan Website
             </div>
             <h2 id="guide-modal-title" className="text-2xl font-semibold text-white">
-              Cara menggunakan LMS Python XII RPL
+              Cara menggunakan LMS  XII RPL
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
               Ikuti alur berikut agar proses belajar, pengerjaan mini game, dan progress
@@ -1300,7 +1308,7 @@ function TopBar({
         <div className="min-w-0">
           <p className="text-xs uppercase text-slate-400">SMKN 13 Bandung</p>
           <h1 className="break-words text-xl font-semibold text-white md:text-2xl">
-            LMS Python XII RPL
+            LMS XII RPL
           </h1>
         </div>
       </div>
@@ -1771,12 +1779,14 @@ function MiniGamePanel({
   hintUses,
   moduleItem,
   progress,
+  onResetHints,
   onUseHint,
   onProgress,
 }: {
   hintUses: number;
   moduleItem: LmsModule;
   progress?: ProgressItem;
+  onResetHints: () => void;
   onUseHint: () => boolean;
   onProgress: (score: number, completed: boolean) => void;
 }) {
@@ -1826,6 +1836,7 @@ function MiniGamePanel({
     setStatus("idle");
     setResetNoticeOpen(false);
     setGameResetKey((current) => current + 1);
+    onResetHints();
     onProgress(0, false);
   }
 
