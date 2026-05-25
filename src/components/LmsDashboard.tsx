@@ -243,29 +243,14 @@ function isModuleUnlocked(
     .every((moduleItem) => progress[moduleItem.id]?.completed);
 }
 
-function isPageRefresh() {
-  if (typeof performance === "undefined") {
-    return false;
-  }
-
-  const [navigationEntry] = performance.getEntriesByType(
-    "navigation",
-  ) as PerformanceNavigationTiming[];
-
-  return navigationEntry?.type === "reload";
-}
-
 function getStoredAuthSession(): AuthSession | null {
   if (typeof window === "undefined") {
     return null;
   }
 
-  if (isPageRefresh()) {
-    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    return null;
-  }
-
-  const storedSession = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
+  const storedSession =
+    window.localStorage.getItem(AUTH_STORAGE_KEY) ??
+    window.sessionStorage.getItem(AUTH_STORAGE_KEY);
 
   if (!storedSession) {
     return null;
@@ -275,14 +260,24 @@ function getStoredAuthSession(): AuthSession | null {
     const parsedSession = JSON.parse(storedSession) as Partial<AuthSession>;
 
     if (typeof parsedSession.username === "string" && typeof parsedSession.studentId === "string") {
-      return {
+      const session = {
         username: parsedSession.username,
         studentId: parsedSession.studentId,
       };
+
+      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+
+      return session;
     }
   } catch {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
   }
+
+  window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
 
   return null;
 }
@@ -307,8 +302,55 @@ function useAuthSession() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    function syncAuthAcrossTabs(event: StorageEvent) {
+      if (event.key !== AUTH_STORAGE_KEY) {
+        return;
+      }
+
+      if (!event.newValue) {
+        window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        setAuthState({
+          isAuthenticated: false,
+          isReady: true,
+          session: null,
+        });
+        return;
+      }
+
+      try {
+        const parsedSession = JSON.parse(event.newValue) as Partial<AuthSession>;
+
+        if (
+          typeof parsedSession.username === "string" &&
+          typeof parsedSession.studentId === "string"
+        ) {
+          setAuthState({
+            isAuthenticated: true,
+            isReady: true,
+            session: {
+              username: parsedSession.username,
+              studentId: parsedSession.studentId,
+            },
+          });
+        }
+      } catch {
+        setAuthState({
+          isAuthenticated: false,
+          isReady: true,
+          session: null,
+        });
+      }
+    }
+
+    window.addEventListener("storage", syncAuthAcrossTabs);
+
+    return () => window.removeEventListener("storage", syncAuthAcrossTabs);
+  }, []);
+
   function login(session: AuthSession) {
-    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     setAuthState({
       isAuthenticated: true,
       isReady: true,
@@ -317,6 +359,7 @@ function useAuthSession() {
   }
 
   function logout() {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
     window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     setAuthState({
       isAuthenticated: false,
@@ -1184,12 +1227,32 @@ function CourseCard({
   course: LmsCourse;
   onEnterCourse: (courseSlug: string) => void;
 }) {
+  const courseHeroStyle =
+    course.id === "python"
+      ? ({
+          backgroundImage:
+            "linear-gradient(180deg, rgba(9, 20, 18, 0.18), rgba(9, 20, 18, 0.68)), url('/Python.svg'), url('/Python.png')",
+        } as CSSProperties)
+      : course.id === "flutter"
+        ? ({
+            backgroundImage:
+              "linear-gradient(180deg, rgba(9, 20, 18, 0.18), rgba(9, 20, 18, 0.68)), url('/flutter.png')",
+          } as CSSProperties)
+      : undefined;
+
   return (
     <article className="group overflow-hidden border border-white/10 bg-white/[0.06] backdrop-blur-xl transition hover:border-emerald-300/35">
       <div className="grid gap-5 p-5 md:grid-cols-[260px_minmax(0,1fr)_220px] md:p-6">
-        <div className="relative min-h-56 overflow-hidden border border-emerald-300/20 bg-[#10211f]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,rgba(55,229,165,0.28),transparent_26%),radial-gradient(circle_at_80%_72%,rgba(94,199,255,0.2),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.1),transparent_45%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0_45%,rgba(255,255,255,0.1)_45%_48%,transparent_48%_100%)] bg-[size:34px_34px]" />
+        <div
+          className="relative min-h-56 overflow-hidden border border-emerald-300/20 bg-[#10211f] bg-cover bg-center"
+          style={courseHeroStyle}
+        >
+          {!courseHeroStyle && (
+            <>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,rgba(55,229,165,0.28),transparent_26%),radial-gradient(circle_at_80%_72%,rgba(94,199,255,0.2),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.1),transparent_45%)]" />
+              <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0_45%,rgba(255,255,255,0.1)_45%_48%,transparent_48%_100%)] bg-[size:34px_34px]" />
+            </>
+          )}
           <div className="absolute left-5 top-5 inline-flex items-center gap-2 border border-white/15 bg-black/30 px-3 py-2 text-sm text-emerald-100">
             <Code2 className="h-4 w-4" />
             {course.stack}
