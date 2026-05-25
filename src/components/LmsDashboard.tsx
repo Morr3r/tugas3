@@ -372,10 +372,30 @@ export function LmsDashboard() {
   const { isAuthenticated, isReady, logout, session } = useAuthSession();
   const { completedCount, completionRate, isLoadingProgress } = useLmsProgress(session?.studentId);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [transitionLoading, setTransitionLoading] = useState<{
+    label: string;
+    detail: string;
+  } | null>(null);
 
   function handleLogout() {
-    logout();
-    router.replace("/login");
+    setTransitionLoading({
+      label: "Keluar akun",
+      detail: "Sesi sedang ditutup dan kamu akan kembali ke halaman login.",
+    });
+    window.setTimeout(() => {
+      logout();
+      router.replace("/login");
+    }, 350);
+  }
+
+  function handleEnterCourse() {
+    setTransitionLoading({
+      label: "Membuka course",
+      detail: "Menyiapkan ruang belajar dan modul interaktif.",
+    });
+    window.setTimeout(() => {
+      router.push("/course/pemrograman-web");
+    }, 350);
   }
 
   useEffect(() => {
@@ -397,11 +417,17 @@ export function LmsDashboard() {
             detail="Mengambil data modul terbaru dari backend."
           />
         )}
+        {transitionLoading && (
+          <LoadingScreen
+            label={transitionLoading.label}
+            detail={transitionLoading.detail}
+          />
+        )}
       </AnimatePresence>
       <CourseOverview
         completedCount={completedCount}
         completionRate={completionRate}
-        onEnterCourse={() => router.push("/course/pemrograman-web")}
+        onEnterCourse={handleEnterCourse}
         onLogout={handleLogout}
         onOpenGuide={() => setGuideOpen(true)}
         username={session?.username ?? "Student"}
@@ -443,6 +469,10 @@ export function LmsModuleDashboard() {
   const [focusMode, setFocusMode] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [hintUsesByModule, setHintUsesByModule] = useState<Record<number, number>>({});
+  const [transitionLoading, setTransitionLoading] = useState<{
+    label: string;
+    detail: string;
+  } | null>(null);
   const {
     averageScore,
     completedCount,
@@ -460,14 +490,26 @@ export function LmsModuleDashboard() {
   );
 
   function handleLogout() {
-    logout();
-    setSidebarMinimized(false);
-    setSyncState("idle");
-    router.replace("/login");
+    setTransitionLoading({
+      label: "Keluar akun",
+      detail: "Sesi belajar sedang ditutup dengan aman.",
+    });
+    window.setTimeout(() => {
+      logout();
+      setSidebarMinimized(false);
+      setSyncState("idle");
+      router.replace("/login");
+    }, 350);
   }
 
   function handleBackToDashboard() {
-    router.push("/dashboard");
+    setTransitionLoading({
+      label: "Membuka dashboard",
+      detail: "Mengembalikan tampilan ke ringkasan course.",
+    });
+    window.setTimeout(() => {
+      router.push("/dashboard");
+    }, 350);
   }
 
   function requestModuleHint(moduleId: number) {
@@ -508,6 +550,12 @@ export function LmsModuleDashboard() {
           <LoadingScreen
             label="Menyimpan progress"
             detail="Jawaban benar sedang disimpan ke backend."
+          />
+        )}
+        {transitionLoading && (
+          <LoadingScreen
+            label={transitionLoading.label}
+            detail={transitionLoading.detail}
           />
         )}
       </AnimatePresence>
@@ -650,7 +698,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
         {isSubmitting && (
           <LoadingScreen
             label="Memeriksa akun"
-            detail="Autentikasi sedang diproses melalui backend."
+            detail="Autentikasi sedang diproses....."
           />
         )}
       </AnimatePresence>
