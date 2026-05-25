@@ -97,7 +97,7 @@ export const modules: LmsModule[] = [
       "F-string membuat output lebih rapi karena nilai variabel dapat disisipkan langsung ke teks.",
     ],
     skills: ["print()", "variabel", "f-string"],
-    code: `nama = "Alya"
+    code: `nama = "Afghany"
 kelas = "XII RPL"
 target = "Backend Developer"
 
@@ -123,10 +123,10 @@ print(f"{nama} dari {kelas} sedang belajar Python untuk menjadi {target}.")`,
         options: [
           `print(f"Halo {nama}, kelas {kelas}")`,
           `kelas = "XII RPL"`,
-          `nama = "Alya"`,
+          `nama = "Afghany"`,
         ],
         answer: [
-          `nama = "Alya"`,
+          `nama = "Afghany"`,
           `kelas = "XII RPL"`,
           `print(f"Halo {nama}, kelas {kelas}")`,
         ],
@@ -151,11 +151,11 @@ print(f"{nama} dari {kelas} sedang belajar Python untuk menjadi {target}.")`,
         kind: "output",
         title: "Terminal Vision",
         prompt: "Output apa yang muncul dari kode berikut?",
-        code: `nama = "Alya"
+        code: `nama = "Afghany"
 kelas = "XII RPL"
 print(f"{nama} - {kelas}")`,
-        options: ["Alya - XII RPL", "{nama} - {kelas}", "nama - kelas", "Error"],
-        answer: "Alya - XII RPL",
+        options: ["Afghany - XII RPL", "{nama} - {kelas}", "nama - kelas", "Error"],
+        answer: "Afghany - XII RPL",
         hint: "F-string mengganti placeholder dengan nilai variabel.",
       },
       {
@@ -180,7 +180,7 @@ kelas = ""
           { label: "print f-string", pattern: "print\\s*\\(\\s*f[\"']" },
         ],
         successMessage: "Kartu profil Python sudah valid.",
-        hint: "Contoh pola: nama = \"Alya\", kelas = \"XII RPL\", lalu print(f\"...\").",
+        hint: "Contoh pola: nama = \"Afghany\", kelas = \"XII RPL\", lalu print(f\"...\").",
       },
     ],
   },
