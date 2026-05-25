@@ -11,9 +11,24 @@ export type ProgressRow = {
   updated_at: string;
 };
 
+export type AssessmentRow = {
+  student_id: string;
+  module_id: number;
+  started_at: string;
+  active_game_id: string;
+  completed_game_ids: string[];
+  failed_game_ids: string[];
+  attempts: number;
+  wrong_attempts: number;
+  streak: number;
+  hint_uses: number;
+  updated_at: string;
+};
+
 let sqlClient: SqlClient | null = null;
 let schemaPromise: Promise<void> | null = null;
 let userSchemaPromise: Promise<void> | null = null;
+let assessmentSchemaPromise: Promise<void> | null = null;
 
 function getSqlClient() {
   const connectionString = process.env.DATABASE_URL;
@@ -69,6 +84,27 @@ async function ensureUserSchema(sql: SqlClient) {
   `.then(() => undefined);
 
   await userSchemaPromise;
+}
+
+async function ensureAssessmentSchema(sql: SqlClient) {
+  assessmentSchemaPromise ??= sql`
+    CREATE TABLE IF NOT EXISTS lms_assessments (
+      student_id TEXT NOT NULL,
+      module_id INTEGER NOT NULL,
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      active_game_id TEXT NOT NULL,
+      completed_game_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+      failed_game_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+      attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+      wrong_attempts INTEGER NOT NULL DEFAULT 0 CHECK (wrong_attempts >= 0),
+      streak INTEGER NOT NULL DEFAULT 0 CHECK (streak >= 0),
+      hint_uses INTEGER NOT NULL DEFAULT 0 CHECK (hint_uses >= 0),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (student_id, module_id)
+    )
+  `.then(() => undefined);
+
+  await assessmentSchemaPromise;
 }
 
 function hashPassword(password: string, salt = randomBytes(16).toString("hex")) {
@@ -202,4 +238,120 @@ export async function upsertProgress({
   `;
 
   return (rows as ProgressRow[])[0];
+}
+
+export async function readAssessments(studentId: string) {
+  const sql = getSqlClient();
+
+  if (!sql) {
+    return null;
+  }
+
+  await ensureAssessmentSchema(sql);
+
+  const rows = await sql`
+    SELECT
+      student_id,
+      module_id,
+      started_at,
+      active_game_id,
+      completed_game_ids,
+      failed_game_ids,
+      attempts,
+      wrong_attempts,
+      streak,
+      hint_uses,
+      updated_at
+    FROM lms_assessments
+    WHERE student_id = ${studentId}
+    ORDER BY module_id ASC
+  `;
+
+  return rows as AssessmentRow[];
+}
+
+export async function upsertAssessment({
+  studentId,
+  moduleId,
+  activeGameId,
+  completedGameIds,
+  failedGameIds,
+  attempts,
+  wrongAttempts,
+  streak,
+  hintUses,
+  startedAt,
+}: {
+  studentId: string;
+  moduleId: number;
+  activeGameId: string;
+  completedGameIds: string[];
+  failedGameIds: string[];
+  attempts: number;
+  wrongAttempts: number;
+  streak: number;
+  hintUses: number;
+  startedAt?: string;
+}) {
+  const sql = getSqlClient();
+
+  if (!sql) {
+    return null;
+  }
+
+  await ensureAssessmentSchema(sql);
+
+  const safeStartedAt = startedAt ? new Date(startedAt).toISOString() : null;
+  const rows = await sql`
+    INSERT INTO lms_assessments (
+      student_id,
+      module_id,
+      started_at,
+      active_game_id,
+      completed_game_ids,
+      failed_game_ids,
+      attempts,
+      wrong_attempts,
+      streak,
+      hint_uses,
+      updated_at
+    )
+    VALUES (
+      ${studentId},
+      ${moduleId},
+      COALESCE(${safeStartedAt}::timestamptz, NOW()),
+      ${activeGameId},
+      ${JSON.stringify(completedGameIds)}::jsonb,
+      ${JSON.stringify(failedGameIds)}::jsonb,
+      ${attempts},
+      ${wrongAttempts},
+      ${streak},
+      ${hintUses},
+      NOW()
+    )
+    ON CONFLICT (student_id, module_id)
+    DO UPDATE SET
+      active_game_id = EXCLUDED.active_game_id,
+      completed_game_ids = EXCLUDED.completed_game_ids,
+      failed_game_ids = EXCLUDED.failed_game_ids,
+      attempts = EXCLUDED.attempts,
+      wrong_attempts = EXCLUDED.wrong_attempts,
+      streak = EXCLUDED.streak,
+      hint_uses = EXCLUDED.hint_uses,
+      updated_at = NOW()
+    RETURNING
+      student_id,
+      module_id,
+      started_at,
+      active_game_id,
+      completed_game_ids,
+      failed_game_ids,
+      attempts,
+      wrong_attempts,
+      streak,
+      hint_uses,
+      updated_at
+  `;
+
+  return (rows as AssessmentRow[])[0];
 }

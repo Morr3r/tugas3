@@ -84,6 +84,18 @@ type ProgressItem = {
 };
 
 type ProgressMap = Record<number, ProgressItem>;
+type AssessmentItem = {
+  startedAt: string;
+  activeGameId: string;
+  completedGameIds: string[];
+  failedGameIds: string[];
+  attempts: number;
+  wrongAttempts: number;
+  streak: number;
+  hintUses: number;
+  updatedAt?: string;
+};
+type AssessmentMap = Record<number, AssessmentItem>;
 type DatabaseMode = "checking" | "neon" | "demo" | "error";
 type SyncState = "idle" | "saving" | "saved" | "offline";
 type AuthSession = {
@@ -376,6 +388,7 @@ function useLmsProgress(
   moduleItems: LmsModule[] = modules,
 ) {
   const [progress, setProgress] = useState<ProgressMap>({});
+  const [assessments, setAssessments] = useState<AssessmentMap>({});
   const [databaseMode, setDatabaseMode] = useState<DatabaseMode>("checking");
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
@@ -406,7 +419,14 @@ function useLmsProgress(
         const response = await fetch(`/api/progress?student_id=${encodeURIComponent(activeStudentId)}`, {
           cache: "no-store",
         });
+        const assessmentResponse = await fetch(
+          `/api/assessment?student_id=${encodeURIComponent(activeStudentId)}`,
+          {
+            cache: "no-store",
+          },
+        );
         const payload = await response.json();
+        const assessmentPayload = await assessmentResponse.json();
 
         if (cancelled) {
           return;
@@ -414,6 +434,10 @@ function useLmsProgress(
 
         if (!response.ok) {
           throw new Error(payload.error ?? "Gagal memuat progress.");
+        }
+
+        if (!assessmentResponse.ok) {
+          throw new Error(assessmentPayload.error ?? "Gagal memuat assessment.");
         }
 
         const nextProgress: ProgressMap = {};
@@ -425,7 +449,27 @@ function useLmsProgress(
           };
         }
 
+        const nextAssessments: AssessmentMap = {};
+        for (const row of assessmentPayload.assessments ?? []) {
+          nextAssessments[row.module_id] = {
+            startedAt: row.started_at,
+            activeGameId: row.active_game_id,
+            completedGameIds: Array.isArray(row.completed_game_ids)
+              ? row.completed_game_ids
+              : [],
+            failedGameIds: Array.isArray(row.failed_game_ids)
+              ? row.failed_game_ids
+              : [],
+            attempts: Number(row.attempts ?? 0),
+            wrongAttempts: Number(row.wrong_attempts ?? 0),
+            streak: Number(row.streak ?? 0),
+            hintUses: Number(row.hint_uses ?? 0),
+            updatedAt: row.updated_at,
+          };
+        }
+
         setProgress(nextProgress);
+        setAssessments(nextAssessments);
         setDatabaseMode(payload.source === "neon" ? "neon" : "demo");
       } catch {
         if (!cancelled) {
@@ -487,13 +531,57 @@ function useLmsProgress(
     }
   }
 
+  async function saveAssessment(moduleId: number, assessment: AssessmentItem) {
+    if (!studentId) {
+      return;
+    }
+
+    setAssessments((current) => ({
+      ...current,
+      [moduleId]: assessment,
+    }));
+
+    try {
+      const response = await fetch("/api/assessment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          module_id: moduleId,
+          started_at: assessment.startedAt,
+          active_game_id: assessment.activeGameId,
+          completed_game_ids: assessment.completedGameIds,
+          failed_game_ids: assessment.failedGameIds,
+          attempts: assessment.attempts,
+          wrong_attempts: assessment.wrongAttempts,
+          streak: assessment.streak,
+          hint_uses: assessment.hintUses,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Gagal menyimpan assessment.");
+      }
+
+      setDatabaseMode(payload.source === "neon" ? "neon" : "demo");
+    } catch {
+      setDatabaseMode("error");
+      setSyncState("offline");
+    }
+  }
+
   return {
     averageScore,
     completedCount,
     completionRate,
     databaseMode,
     isLoadingProgress,
+    assessments,
     progress,
+    saveAssessment,
     saveProgress,
     setSyncState,
     syncState,
@@ -614,10 +702,12 @@ export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseS
   } | null>(null);
   const {
     averageScore,
+    assessments,
     completedCount,
     completionRate,
     isLoadingProgress,
     progress,
+    saveAssessment,
     saveProgress,
     setSyncState,
     syncState,
@@ -763,9 +853,13 @@ export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseS
                 key={activeModule.id}
                 hintUses={hintUsesByModule[activeModule.id] ?? 0}
                 moduleItem={activeModule}
+                assessment={assessments[activeModule.id]}
                 progress={progress[activeModule.id]}
                 onUseHint={() => requestModuleHint(activeModule.id)}
                 onResetHints={() => resetModuleHints(activeModule.id)}
+                onAssessmentChange={(assessment) =>
+                  saveAssessment(activeModule.id, assessment)
+                }
                 onProgress={(score, completed) =>
                   saveProgress(activeModule.id, score, completed)
                 }
@@ -2457,38 +2551,61 @@ function getSeededGameIds(moduleItem: LmsModule, progress?: ProgressItem) {
   return moduleItem.games.slice(0, safeCount).map((game) => game.id);
 }
 
+function getAssessmentTimeLeft(startedAt: string) {
+  const startedAtTime = Date.parse(startedAt);
+
+  if (!Number.isFinite(startedAtTime)) {
+    return MODULE_GAME_SECONDS;
+  }
+
+  const elapsedSeconds = Math.floor((Date.now() - startedAtTime) / 1000);
+  return Math.max(0, MODULE_GAME_SECONDS - elapsedSeconds);
+}
+
 function MiniGamePanel({
+  assessment,
   hintUses,
   moduleItem,
   progress,
+  onAssessmentChange,
   onResetHints,
   onUseHint,
   onProgress,
 }: {
+  assessment?: AssessmentItem;
   hintUses: number;
   moduleItem: LmsModule;
   progress?: ProgressItem;
+  onAssessmentChange: (assessment: AssessmentItem) => void;
   onResetHints: () => void;
   onUseHint: () => boolean;
   onProgress: (score: number, completed: boolean) => void;
 }) {
-  const initialCompletedGameIds = getSeededGameIds(moduleItem, progress);
+  const initialCompletedGameIds = assessment?.completedGameIds ?? getSeededGameIds(moduleItem, progress);
+  const initialFailedGameIds = assessment?.failedGameIds ?? [];
   const initialActiveGame =
-    moduleItem.games[initialCompletedGameIds.length] ??
+    moduleItem.games.find((game) => game.id === assessment?.activeGameId) ??
+    moduleItem.games[initialCompletedGameIds.length + initialFailedGameIds.length] ??
     moduleItem.games[moduleItem.games.length - 1];
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [activeGameId, setActiveGameId] = useState(initialActiveGame.id);
   const [completedGameIds, setCompletedGameIds] = useState<string[]>(
     initialCompletedGameIds,
   );
-  const [failedGameIds, setFailedGameIds] = useState<string[]>([]);
-  const [attempts, setAttempts] = useState(0);
-  const [wrongAttempts, setWrongAttempts] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const [failedGameIds, setFailedGameIds] = useState<string[]>(initialFailedGameIds);
+  const [attempts, setAttempts] = useState(assessment?.attempts ?? 0);
+  const [wrongAttempts, setWrongAttempts] = useState(assessment?.wrongAttempts ?? 0);
+  const [streak, setStreak] = useState(assessment?.streak ?? 0);
+  const [persistedHintUses, setPersistedHintUses] = useState(
+    assessment?.hintUses ?? hintUses,
+  );
   const [showHint, setShowHint] = useState(false);
   const [gameResetKey, setGameResetKey] = useState(0);
-  const [isChallengeStarted, setIsChallengeStarted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(MODULE_GAME_SECONDS);
+  const [startedAt, setStartedAt] = useState(assessment?.startedAt ?? "");
+  const [isChallengeStarted, setIsChallengeStarted] = useState(Boolean(assessment));
+  const [timeLeft, setTimeLeft] = useState(() =>
+    assessment?.startedAt ? getAssessmentTimeLeft(assessment.startedAt) : MODULE_GAME_SECONDS,
+  );
 
   const activeGame =
     moduleItem.games.find((game) => game.id === activeGameId) ?? moduleItem.games[0];
@@ -2497,37 +2614,101 @@ function MiniGamePanel({
   const effectiveCompletedGameIds = isChallengeStarted
     ? completedGameIds
     : savedCompletedGameIds;
+  const answeredGameIds = Array.from(new Set([...completedGameIds, ...failedGameIds]));
   const completedGameCount = effectiveCompletedGameIds.length;
+  const answeredGameCount = isChallengeStarted
+    ? answeredGameIds.length
+    : savedCompletedGameIds.length;
   const gameScore = Math.round((completedGameCount / moduleItem.games.length) * 100);
   const isActiveGameComplete = completedGameIds.includes(activeGame.id);
   const isTimeUp = timeLeft <= 0 && !progress?.completed;
-  const remainingHints = Math.max(0, MAX_HINTS_PER_MODULE - hintUses);
+  const remainingHints = Math.max(0, MAX_HINTS_PER_MODULE - persistedHintUses);
   const canOpenHint = remainingHints > 0 && isChallengeStarted && !isTimeUp;
   const isActiveGameLocked = failedGameIds.includes(activeGame.id);
 
   useEffect(() => {
-    if (!isChallengeStarted || isTimeUp || progress?.completed) {
+    if (!isChallengeStarted || !startedAt || progress?.completed) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      setTimeLeft((current) => Math.max(0, current - 1));
+      setTimeLeft(getAssessmentTimeLeft(startedAt));
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [isChallengeStarted, isTimeUp, progress?.completed]);
+  }, [isChallengeStarted, progress?.completed, startedAt]);
+
+  useEffect(() => {
+    if (!assessment) {
+      return;
+    }
+
+    const syncTimer = window.setTimeout(() => {
+      const nextActiveGame =
+        moduleItem.games.find((game) => game.id === assessment.activeGameId) ??
+        moduleItem.games[0];
+
+      setActiveGameId(nextActiveGame.id);
+      setCompletedGameIds(assessment.completedGameIds);
+      setFailedGameIds(assessment.failedGameIds);
+      setAttempts(assessment.attempts);
+      setWrongAttempts(assessment.wrongAttempts);
+      setStreak(assessment.streak);
+      setPersistedHintUses(assessment.hintUses);
+      setStartedAt(assessment.startedAt);
+      setIsChallengeStarted(true);
+      setTimeLeft(getAssessmentTimeLeft(assessment.startedAt));
+      setStatus(
+        assessment.completedGameIds.includes(nextActiveGame.id)
+          ? "success"
+          : assessment.failedGameIds.includes(nextActiveGame.id)
+            ? "error"
+            : "idle",
+      );
+      setShowHint(false);
+    }, 0);
+
+    return () => window.clearTimeout(syncTimer);
+  }, [assessment, moduleItem.games]);
+
+  function persistAssessment(nextAssessment: AssessmentItem) {
+    onAssessmentChange(nextAssessment);
+  }
 
   function startChallenge() {
-    setCompletedGameIds(savedCompletedGameIds);
-    setFailedGameIds([]);
-    setActiveGameId(
-      moduleItem.games[savedCompletedGameIds.length]?.id ??
-        moduleItem.games[moduleItem.games.length - 1].id,
-    );
+    const nextStartedAt = assessment?.startedAt ?? new Date().toISOString();
+    const nextCompletedGameIds = assessment?.completedGameIds ?? savedCompletedGameIds;
+    const nextFailedGameIds = assessment?.failedGameIds ?? [];
+    const nextAnsweredCount = nextCompletedGameIds.length + nextFailedGameIds.length;
+    const nextActiveGame =
+      moduleItem.games.find((game) => game.id === assessment?.activeGameId) ??
+      moduleItem.games[nextAnsweredCount] ??
+      moduleItem.games[moduleItem.games.length - 1];
+
+    setCompletedGameIds(nextCompletedGameIds);
+    setFailedGameIds(nextFailedGameIds);
+    setActiveGameId(nextActiveGame.id);
     setIsChallengeStarted(true);
-    setTimeLeft(MODULE_GAME_SECONDS);
-    setStatus(savedCompletedGameIds.length > 0 ? "success" : "idle");
+    setStartedAt(nextStartedAt);
+    setTimeLeft(getAssessmentTimeLeft(nextStartedAt));
+    setStatus(
+      nextCompletedGameIds.includes(nextActiveGame.id)
+        ? "success"
+        : nextFailedGameIds.includes(nextActiveGame.id)
+          ? "error"
+          : "idle",
+    );
     setShowHint(false);
+    persistAssessment({
+      startedAt: nextStartedAt,
+      activeGameId: nextActiveGame.id,
+      completedGameIds: nextCompletedGameIds,
+      failedGameIds: nextFailedGameIds,
+      attempts,
+      wrongAttempts,
+      streak,
+      hintUses: persistedHintUses,
+    });
   }
 
   function openHint() {
@@ -2536,7 +2717,19 @@ function MiniGamePanel({
     }
 
     if (onUseHint()) {
+      const nextHintUses = persistedHintUses + 1;
+      setPersistedHintUses(nextHintUses);
       setShowHint(true);
+      persistAssessment({
+        startedAt,
+        activeGameId,
+        completedGameIds,
+        failedGameIds,
+        attempts,
+        wrongAttempts,
+        streak,
+        hintUses: nextHintUses,
+      });
     }
   }
 
@@ -2547,10 +2740,12 @@ function MiniGamePanel({
     setAttempts(0);
     setWrongAttempts(0);
     setStreak(0);
+    setPersistedHintUses(0);
     setShowHint(false);
     setStatus("idle");
     setGameResetKey((current) => current + 1);
     setIsChallengeStarted(false);
+    setStartedAt("");
     setTimeLeft(MODULE_GAME_SECONDS);
     onResetHints();
     onProgress(0, false);
@@ -2566,16 +2761,21 @@ function MiniGamePanel({
       return;
     }
 
-    const nextCompletedIds = moduleItem.games
-      .slice(0, activeGameIndex + 1)
-      .map((game) => game.id);
+    const nextCompletedIds = completedGameIds.includes(activeGame.id)
+      ? completedGameIds
+      : [...completedGameIds, activeGame.id];
     const nextScore = Math.round((nextCompletedIds.length / moduleItem.games.length) * 100);
     const isModuleComplete = nextCompletedIds.length === moduleItem.games.length;
+    const nextAttempts = attempts + 1;
+    const nextStreak = streak + 1;
+    const nextActiveGame = isModuleComplete
+      ? activeGame
+      : moduleItem.games[activeGameIndex + 1];
 
     setCompletedGameIds(nextCompletedIds);
-    setAttempts((current) => current + 1);
+    setAttempts(nextAttempts);
     setWrongAttempts(0);
-    setStreak((current) => current + 1);
+    setStreak(nextStreak);
     setShowHint(false);
     setStatus("success");
     confetti({
@@ -2585,11 +2785,20 @@ function MiniGamePanel({
       colors: [moduleItem.color, "#ffffff", "#ffd166", "#74d4ff"],
     });
     onProgress(nextScore, isModuleComplete);
+    persistAssessment({
+      startedAt,
+      activeGameId: nextActiveGame.id,
+      completedGameIds: nextCompletedIds,
+      failedGameIds,
+      attempts: nextAttempts,
+      wrongAttempts: 0,
+      streak: nextStreak,
+      hintUses: persistedHintUses,
+    });
 
     if (!isModuleComplete) {
-      const nextGame = moduleItem.games[activeGameIndex + 1];
       window.setTimeout(() => {
-        setActiveGameId(nextGame.id);
+        setActiveGameId(nextActiveGame.id);
         setStatus("idle");
         setShowHint(false);
       }, 700);
@@ -2601,15 +2810,41 @@ function MiniGamePanel({
       return;
     }
 
-    setFailedGameIds((current) =>
-      current.includes(activeGame.id) ? current : [...current, activeGame.id],
-    );
-    setAttempts((current) => current + 1);
+    const nextFailedGameIds = failedGameIds.includes(activeGame.id)
+      ? failedGameIds
+      : [...failedGameIds, activeGame.id];
+    const isLastGame = activeGameIndex === moduleItem.games.length - 1;
+    const nextAttempts = attempts + 1;
+    const nextWrongAttempts = nextFailedGameIds.length;
+    const nextActiveGame = isLastGame
+      ? activeGame
+      : moduleItem.games[activeGameIndex + 1];
+
+    setFailedGameIds(nextFailedGameIds);
+    setAttempts(nextAttempts);
     setStreak(0);
-    setWrongAttempts(1);
+    setWrongAttempts(nextWrongAttempts);
     setShowHint(false);
     setStatus("error");
     onProgress(gameScore, false);
+    persistAssessment({
+      startedAt,
+      activeGameId: nextActiveGame.id,
+      completedGameIds,
+      failedGameIds: nextFailedGameIds,
+      attempts: nextAttempts,
+      wrongAttempts: nextWrongAttempts,
+      streak: 0,
+      hintUses: persistedHintUses,
+    });
+
+    if (!isLastGame) {
+      window.setTimeout(() => {
+        setActiveGameId(nextActiveGame.id);
+        setStatus("idle");
+        setShowHint(false);
+      }, 700);
+    }
   }
 
   return (
@@ -2655,7 +2890,7 @@ function MiniGamePanel({
         <MiniGameStat
           icon={AlertCircle}
           label="Salah"
-          value={`${wrongAttempts}/1`}
+          value={`${wrongAttempts} game`}
           color="#74d4ff"
         />
         <button
@@ -2694,7 +2929,7 @@ function MiniGamePanel({
           const isActive = activeGame.id === game.id;
           const isComplete = completedGameIds.includes(game.id);
           const isFailed = failedGameIds.includes(game.id);
-          const isLocked = index > completedGameCount;
+          const isLocked = index > answeredGameCount;
 
           return (
             <button
