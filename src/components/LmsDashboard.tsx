@@ -61,14 +61,17 @@ import {
   useState,
 } from "react";
 import {
+  allModules,
+  getCourseBySlug,
+  lmsCourses,
   modules,
   gamesPerModule,
-  totalLearningMinutes,
   type ChoiceGame,
   type LiveCodeGame,
   type LmsModule,
   type LocateGame,
   type OutputGame,
+  type LmsCourse,
   type ModuleIcon,
   type SequenceGame,
 } from "@/lib/modules";
@@ -221,8 +224,12 @@ function getAccentStyle(color: string): CSSProperties {
   } as CSSProperties;
 }
 
-function isModuleUnlocked(moduleId: number, progress: ProgressMap) {
-  return modules
+function isModuleUnlocked(
+  moduleId: number,
+  progress: ProgressMap,
+  moduleItems: LmsModule[] = modules,
+) {
+  return moduleItems
     .filter((moduleItem) => moduleItem.id < moduleId)
     .every((moduleItem) => progress[moduleItem.id]?.completed);
 }
@@ -312,20 +319,23 @@ function useAuthSession() {
   return { ...authState, login, logout };
 }
 
-function useLmsProgress(studentId: string | null | undefined) {
+function useLmsProgress(
+  studentId: string | null | undefined,
+  moduleItems: LmsModule[] = modules,
+) {
   const [progress, setProgress] = useState<ProgressMap>({});
   const [databaseMode, setDatabaseMode] = useState<DatabaseMode>("checking");
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
-  const completedCount = modules.filter(
+  const completedCount = moduleItems.filter(
     (item) => progress[item.id]?.completed,
   ).length;
-  const completionRate = Math.round((completedCount / modules.length) * 100);
+  const completionRate = Math.round((completedCount / moduleItems.length) * 100);
   const averageScore =
     completedCount === 0
       ? 0
       : Math.round(
-          modules.reduce((total, item) => total + (progress[item.id]?.score ?? 0), 0) /
+          moduleItems.reduce((total, item) => total + (progress[item.id]?.score ?? 0), 0) /
             completedCount,
         );
 
@@ -441,7 +451,10 @@ function useLmsProgress(studentId: string | null | undefined) {
 export function LmsDashboard() {
   const router = useRouter();
   const { isAuthenticated, isReady, logout, session } = useAuthSession();
-  const { completedCount, completionRate, isLoadingProgress } = useLmsProgress(session?.studentId);
+  const { completedCount, completionRate, isLoadingProgress, progress } = useLmsProgress(
+    session?.studentId,
+    allModules,
+  );
   const [guideOpen, setGuideOpen] = useState(false);
   const [transitionLoading, setTransitionLoading] = useState<{
     label: string;
@@ -459,13 +472,13 @@ export function LmsDashboard() {
     }, 350);
   }
 
-  function handleEnterCourse() {
+  function handleEnterCourse(courseSlug: string) {
     setTransitionLoading({
       label: "Membuka course",
       detail: "Menyiapkan ruang belajar dan modul interaktif.",
     });
     window.setTimeout(() => {
-      router.push("/course/pemrograman-web");
+      router.push(`/course/${courseSlug}`);
     }, 350);
   }
 
@@ -501,6 +514,7 @@ export function LmsDashboard() {
         onEnterCourse={handleEnterCourse}
         onLogout={handleLogout}
         onOpenGuide={() => setGuideOpen(true)}
+        progress={progress}
         username={session?.username ?? "Student"}
       />
       <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
@@ -532,10 +546,12 @@ export function LmsLoginPage() {
   );
 }
 
-export function LmsModuleDashboard() {
+export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseSlug?: string }) {
   const router = useRouter();
   const { isAuthenticated, isReady, logout, session } = useAuthSession();
-  const [activeId, setActiveId] = useState(1);
+  const course = useMemo(() => getCourseBySlug(courseSlug), [courseSlug]);
+  const courseModules = course.modules;
+  const [activeId, setActiveId] = useState(() => courseModules[0].id);
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -553,11 +569,11 @@ export function LmsModuleDashboard() {
     saveProgress,
     setSyncState,
     syncState,
-  } = useLmsProgress(session?.studentId);
+  } = useLmsProgress(session?.studentId, courseModules);
 
   const activeModule = useMemo(
-    () => modules.find((item) => item.id === activeId) ?? modules[0],
-    [activeId],
+    () => courseModules.find((item) => item.id === activeId) ?? courseModules[0],
+    [activeId, courseModules],
   );
 
   function handleLogout() {
@@ -644,6 +660,7 @@ export function LmsModuleDashboard() {
         activeId={activeId}
         completionRate={completionRate}
         minimized={sidebarMinimized}
+        moduleItems={courseModules}
         progress={progress}
         onToggleMinimized={() => setSidebarMinimized((current) => !current)}
         onSelect={setActiveId}
@@ -668,6 +685,7 @@ export function LmsModuleDashboard() {
 
           <MobileModuleRail
             activeId={activeId}
+            moduleItems={courseModules}
             progress={progress}
             onSelect={setActiveId}
           />
@@ -680,6 +698,7 @@ export function LmsModuleDashboard() {
           >
             <div className="min-w-0 space-y-4">
               <ModuleStage
+                course={course}
                 moduleItem={activeModule}
                 progress={progress[activeModule.id]}
                 completionRate={completionRate}
@@ -707,6 +726,8 @@ export function LmsModuleDashboard() {
               <RightPanel
                 activeModule={activeModule}
                 completedCount={completedCount}
+                course={course}
+                moduleItems={courseModules}
                 progress={progress}
                 onSelectModule={setActiveId}
               />
@@ -804,14 +825,14 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
                 Portal Dasar Pemrograman XII RPL
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-8 text-slate-300">
-                Akses course Pemrograman Web, modul Python, mini game, dan live coding
+                Akses course Python dan Flutter Flow, mini game, dan live coding
                 dalam satu ruang belajar digital.
               </p>
             </div>
 
             <div className="relative z-10 grid grid-cols-2 gap-3">
-              <MetricTile icon={BookOpen} label="Course" value="1" />
-              <MetricTile icon={Gamepad2} label="Game" value="40" />
+              <MetricTile icon={BookOpen} label="Course" value={`${lmsCourses.length}`} />
+              <MetricTile icon={Gamepad2} label="Game" value={`${allModules.length * gamesPerModule}`} />
             </div>
           </div>
 
@@ -912,7 +933,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
               </div>
               <div className="border border-white/10 bg-white/[0.045] p-3">
                 <p className="text-xs uppercase text-slate-500">Course</p>
-                <p className="mt-1 font-semibold text-white">Pemrograman Web</p>
+                <p className="mt-1 font-semibold text-white">Python & Flutter Flow</p>
               </div>
             </div>
           </div>
@@ -928,13 +949,15 @@ function CourseOverview({
   onEnterCourse,
   onLogout,
   onOpenGuide,
+  progress,
   username,
 }: {
   completedCount: number;
   completionRate: number;
-  onEnterCourse: () => void;
+  onEnterCourse: (courseSlug: string) => void;
   onLogout: () => void;
   onOpenGuide: () => void;
+  progress: ProgressMap;
   username: string;
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -964,6 +987,17 @@ function CourseOverview({
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, []);
+
+  function getCourseProgress(course: LmsCourse) {
+    const courseCompletedCount = course.modules.filter(
+      (moduleItem) => progress[moduleItem.id]?.completed,
+    ).length;
+
+    return {
+      completedCount: courseCompletedCount,
+      completionRate: Math.round((courseCompletedCount / course.modules.length) * 100),
+    };
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#08090e] text-slate-100">
@@ -1078,7 +1112,7 @@ function CourseOverview({
                   Course hub
                 </span>
                 <span className="border border-white/10 bg-black/20 px-3 py-1 text-sm text-slate-300">
-                  1 course tersedia
+                  {lmsCourses.length} course tersedia
                 </span>
                 <span className="border border-white/10 bg-black/20 px-3 py-1 text-sm text-slate-300">
                   XII RPL
@@ -1091,7 +1125,7 @@ function CourseOverview({
                     Pilih ruang belajar untuk mulai belajar bahasa pemrograman.
                   </h2>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                    Portal ini dibuat khusus untuk siswa XII RPL dengan course Pemrograman Web yang berisi 8 modul interaktif lengkap dengan mini game dan live coding.
+                    Portal ini dibuat khusus untuk siswa XII RPL dengan beberapa course bahasa pemrograman yang masing-masing berisi 8 modul interaktif lengkap dengan mini game dan live coding.
                   </p>
                 </div>
                 <div className="border border-white/10 bg-black/25 p-4">
@@ -1103,16 +1137,28 @@ function CourseOverview({
                       style={{ width: `${completionRate}%` }}
                     />
                   </div>
-                  <p className="mt-3 text-sm text-slate-400">{completedCount}/8 modul selesai</p>
+                  <p className="mt-3 text-sm text-slate-400">
+                    {completedCount}/{allModules.length} modul selesai
+                  </p>
                 </div>
               </div>
             </div>
 
-            <CourseCard
-              completionRate={completionRate}
-              completedCount={completedCount}
-              onEnterCourse={onEnterCourse}
-            />
+            <div className="grid gap-5">
+              {lmsCourses.map((course) => {
+                const courseProgress = getCourseProgress(course);
+
+                return (
+                  <CourseCard
+                    key={course.id}
+                    completionRate={courseProgress.completionRate}
+                    completedCount={courseProgress.completedCount}
+                    course={course}
+                    onEnterCourse={onEnterCourse}
+                  />
+                );
+              })}
+            </div>
           </div>
 
           <aside className="space-y-5">
@@ -1122,8 +1168,8 @@ function CourseOverview({
                 <h3 className="text-lg font-semibold">Study Analytics</h3>
               </div>
               <div className="grid gap-3">
-                <AnalyticsRow label="Course aktif" value="1" />
-                <AnalyticsRow label="Modul" value="8" />
+                <AnalyticsRow label="Course aktif" value={`${lmsCourses.length}`} />
+                <AnalyticsRow label="Modul" value={`${allModules.length}`} />
               </div>
             </section>
 
@@ -1137,17 +1183,19 @@ function CourseOverview({
 function CourseCard({
   completionRate,
   completedCount,
+  course,
   onEnterCourse,
 }: {
   completionRate: number;
   completedCount: number;
-  onEnterCourse: () => void;
+  course: LmsCourse;
+  onEnterCourse: (courseSlug: string) => void;
 }) {
   return (
     <article className="group overflow-hidden border border-white/10 bg-white/[0.06] backdrop-blur-xl transition hover:border-emerald-300/35">
       <button
         type="button"
-        onClick={onEnterCourse}
+        onClick={() => onEnterCourse(course.slug)}
         className="group block w-full text-left"
       >
         <div className="grid gap-5 p-5 md:grid-cols-[260px_minmax(0,1fr)_220px] md:p-6">
@@ -1156,27 +1204,26 @@ function CourseCard({
             <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0_45%,rgba(255,255,255,0.1)_45%_48%,transparent_48%_100%)] bg-[size:34px_34px]" />
             <div className="absolute left-5 top-5 inline-flex items-center gap-2 border border-white/15 bg-black/30 px-3 py-2 text-sm text-emerald-100">
               <Code2 className="h-4 w-4" />
-              Python
+              {course.stack}
             </div>
             <div className="absolute bottom-5 left-5 right-5">
-              <p className="text-sm text-emerald-100/80">XII RPL</p>
-              <p className="mt-1 text-3xl font-semibold text-white">Web Programming</p>
+              <p className="text-sm text-emerald-100/80">{course.level}</p>
+              <p className="mt-1 text-3xl font-semibold text-white">{course.shortTitle}</p>
             </div>
           </div>
 
           <div className="min-w-0 py-1">
             <div className="mb-4 flex flex-wrap gap-2">
               <span className="border border-white/10 bg-black/25 px-3 py-1 text-sm text-slate-300">
-                8 modul
+                {course.modules.length} modul
               </span>
             </div>
-            <h2 className="text-3xl font-semibold text-white">Pemrograman Web</h2>
+            <h2 className="text-3xl font-semibold text-white">{course.title}</h2>
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">
-              Kelas Python untuk membangun fondasi pemrograman web, mulai dari
-              sintaks dasar sampai API mini project.
+              {course.description}
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <MetricTile icon={BrainCircuit} label="Level" value="XII RPL" />
+              <MetricTile icon={BrainCircuit} label="Level" value={course.level} />
               <MetricTile icon={Gamepad2} label="Game" value="5/modul" />
               <MetricTile icon={ShieldCheck} label="Lock" value="Berurutan" />
             </div>
@@ -1192,7 +1239,9 @@ function CourseCard({
                   style={{ width: `${completionRate}%` }}
                 />
               </div>
-              <p className="mt-3 text-sm text-slate-400">{completedCount}/8 modul selesai</p>
+              <p className="mt-3 text-sm text-slate-400">
+                {completedCount}/{course.modules.length} modul selesai
+              </p>
             </div>
             <div className="mt-6 inline-flex items-center justify-center gap-2 border border-emerald-300/40 bg-emerald-300 px-4 py-3 font-semibold text-slate-950 transition group-hover:bg-emerald-200">
               <Play className="h-4 w-4" />
@@ -1224,11 +1273,11 @@ function GuideModal({
     },
     {
       title: "2. Dashboard Course",
-      body: "Setelah login, kamu masuk ke dashboard. Di sana hanya ada satu course, yaitu Pemrograman Web. Panel analytics menampilkan jumlah modul, mini game, dan status database.",
+      body: "Setelah login, kamu masuk ke dashboard. Di sana tersedia course Python dan Flutter Flow. Panel analytics menampilkan jumlah modul, mini game, dan status database.",
     },
     {
       title: "3. Masuk Course",
-      body: "Klik kartu Pemrograman Web atau tombol Masuk course untuk membuka halaman modul Python. Tombol Back di halaman modul akan mengembalikan kamu ke dashboard.",
+      body: "Klik kartu course atau tombol Masuk course untuk membuka halaman modul sesuai course yang dipilih. Tombol Back di halaman modul akan mengembalikan kamu ke dashboard.",
     },
     {
       title: "4. Urutan Modul",
@@ -1520,6 +1569,7 @@ function Sidebar({
   activeId,
   completionRate,
   minimized,
+  moduleItems,
   progress,
   onToggleMinimized,
   onSelect,
@@ -1527,6 +1577,7 @@ function Sidebar({
   activeId: number;
   completionRate: number;
   minimized: boolean;
+  moduleItems: LmsModule[];
   progress: ProgressMap;
   onToggleMinimized: () => void;
   onSelect: (id: number) => void;
@@ -1570,14 +1621,14 @@ function Sidebar({
         </div>
       )}
 
-      <nav className={cx("space-y-2", minimized && "mt-1")} aria-label="Daftar modul Python">
-        {modules.map((moduleItem) => (
+      <nav className={cx("space-y-2", minimized && "mt-1")} aria-label="Daftar modul course">
+        {moduleItems.map((moduleItem) => (
           <ModuleNavButton
             key={moduleItem.id}
             moduleItem={moduleItem}
             isActive={moduleItem.id === activeId}
             isComplete={Boolean(progress[moduleItem.id]?.completed)}
-            isLocked={!isModuleUnlocked(moduleItem.id, progress)}
+            isLocked={!isModuleUnlocked(moduleItem.id, progress, moduleItems)}
             minimized={minimized}
             onSelect={onSelect}
           />
@@ -1589,10 +1640,12 @@ function Sidebar({
 
 function MobileModuleRail({
   activeId,
+  moduleItems,
   progress,
   onSelect,
 }: {
   activeId: number;
+  moduleItems: LmsModule[];
   progress: ProgressMap;
   onSelect: (id: number) => void;
 }) {
@@ -1601,10 +1654,10 @@ function MobileModuleRail({
       className="mb-4 flex gap-2 overflow-x-auto pb-1 lg:hidden"
       aria-label="Daftar modul mobile"
     >
-      {modules.map((moduleItem) => {
+      {moduleItems.map((moduleItem) => {
         const isActive = activeId === moduleItem.id;
         const isComplete = Boolean(progress[moduleItem.id]?.completed);
-        const isLocked = !isModuleUnlocked(moduleItem.id, progress);
+        const isLocked = !isModuleUnlocked(moduleItem.id, progress, moduleItems);
 
         return (
           <button
@@ -1715,11 +1768,13 @@ function ModuleNavButton({
 }
 
 function ModuleStage({
+  course,
   moduleItem,
   progress,
   completionRate,
   averageScore,
 }: {
+  course: LmsCourse;
   moduleItem: LmsModule;
   progress?: ProgressItem;
   completionRate: number;
@@ -1736,7 +1791,9 @@ function ModuleStage({
       />
       <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
         <div className="min-w-0">
-          <p className="text-sm text-slate-400">{moduleItem.title}</p>
+          <p className="text-sm text-slate-400">
+            {course.shortTitle} / {moduleItem.title}
+          </p>
           <h2 className="mt-1 max-w-3xl break-words text-3xl font-semibold text-white md:text-4xl">
             {moduleItem.subtitle}
           </h2>
@@ -2878,11 +2935,15 @@ function LiveCodeGameView({
 function RightPanel({
   activeModule,
   completedCount,
+  course,
+  moduleItems,
   progress,
   onSelectModule,
 }: {
   activeModule: LmsModule;
   completedCount: number;
+  course: LmsCourse;
+  moduleItems: LmsModule[];
   progress: ProgressMap;
   onSelectModule: (id: number) => void;
 }) {
@@ -2894,18 +2955,22 @@ function RightPanel({
           <h3 className="text-lg font-semibold">Learning Analytics</h3>
         </div>
         <div className="grid gap-3">
-          <AnalyticsRow label="Modul selesai" value={`${completedCount}/${modules.length}`} />
+          <AnalyticsRow label="Course" value={course.shortTitle} />
+          <AnalyticsRow label="Modul selesai" value={`${completedCount}/${moduleItems.length}`} />
           <AnalyticsRow label="Game per modul" value={`${gamesPerModule} game`} />
-          <AnalyticsRow label="Durasi kurikulum" value={`${totalLearningMinutes} menit`} />
+          <AnalyticsRow
+            label="Durasi kurikulum"
+            value={`${moduleItems.reduce((total, item) => total + item.minutes, 0)} menit`}
+          />
         </div>
       </section>
 
       <section className="border border-white/10 bg-white/[0.055] p-4 backdrop-blur">
         <div className="space-y-2">
-          {modules.map((moduleItem) => {
+          {moduleItems.map((moduleItem) => {
             const isActive = moduleItem.id === activeModule.id;
             const itemProgress = progress[moduleItem.id];
-            const isUnlocked = isModuleUnlocked(moduleItem.id, progress);
+            const isUnlocked = isModuleUnlocked(moduleItem.id, progress, moduleItems);
 
             return (
               <button

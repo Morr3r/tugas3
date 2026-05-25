@@ -4,10 +4,12 @@ import {
   upsertProgress,
   type ProgressRow,
 } from "@/lib/neon";
+import { allModules } from "@/lib/modules";
 
 export const runtime = "nodejs";
 
 const demoStore = new Map<string, ProgressRow[]>();
+const validModuleIds = new Set(allModules.map((moduleItem) => moduleItem.id));
 
 function normalizeStudentId(value: unknown) {
   if (typeof value !== "string") {
@@ -90,10 +92,10 @@ export async function POST(request: NextRequest) {
   const completed = Boolean(body?.completed);
   const score = Math.max(0, Math.min(100, Number(body?.score ?? 0)));
 
-  if (!Number.isInteger(moduleId) || moduleId < 1 || moduleId > 8) {
+  if (!Number.isInteger(moduleId) || !validModuleIds.has(moduleId)) {
     return NextResponse.json(
       {
-        error: "module_id harus berupa angka 1 sampai 8.",
+        error: "module_id tidak terdaftar pada course LMS.",
       },
       { status: 400 },
     );

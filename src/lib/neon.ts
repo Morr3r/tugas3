@@ -30,16 +30,29 @@ function getSqlClient() {
 }
 
 async function ensureProgressSchema(sql: SqlClient) {
-  schemaPromise ??= sql`
-    CREATE TABLE IF NOT EXISTS lms_progress (
-      student_id TEXT NOT NULL,
-      module_id INTEGER NOT NULL CHECK (module_id BETWEEN 1 AND 8),
-      completed BOOLEAN NOT NULL DEFAULT false,
-      score INTEGER NOT NULL DEFAULT 0 CHECK (score BETWEEN 0 AND 100),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (student_id, module_id)
-    )
-  `.then(() => undefined);
+  schemaPromise ??= (async () => {
+    await sql`
+      CREATE TABLE IF NOT EXISTS lms_progress (
+        student_id TEXT NOT NULL,
+        module_id INTEGER NOT NULL,
+        completed BOOLEAN NOT NULL DEFAULT false,
+        score INTEGER NOT NULL DEFAULT 0 CHECK (score BETWEEN 0 AND 100),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (student_id, module_id)
+      )
+    `;
+
+    await sql`
+      ALTER TABLE lms_progress
+      DROP CONSTRAINT IF EXISTS lms_progress_module_id_check
+    `;
+
+    await sql`
+      ALTER TABLE lms_progress
+      ADD CONSTRAINT lms_progress_module_id_check
+      CHECK (module_id > 0)
+    `;
+  })();
 
   await schemaPromise;
 }

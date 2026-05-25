@@ -80,6 +80,18 @@ export type LmsModule = {
   games: MiniGame[];
 };
 
+export type LmsCourse = {
+  id: string;
+  slug: string;
+  title: string;
+  shortTitle: string;
+  label: string;
+  description: string;
+  stack: string;
+  level: string;
+  modules: LmsModule[];
+};
+
 export const modules: LmsModule[] = [
   {
     id: 1,
@@ -927,6 +939,786 @@ print(payload["score"])`,
     ],
   },
 ];
+
+export const flutterFlowModules: LmsModule[] = [
+  {
+    id: 101,
+    slug: "flutterflow-fundamental",
+    title: "Modul 1",
+    subtitle: "FlutterFlow Fundamental",
+    focus: "Workspace, project setup, pages, dan responsive canvas",
+    minutes: 45,
+    level: "Dasar",
+    color: "#54c5f8",
+    icon: "syntax",
+    theory: [
+      "FlutterFlow adalah visual app builder untuk membuat aplikasi Flutter tanpa menulis semua kode dari nol.",
+      "Struktur awal aplikasi biasanya dimulai dari project, page, layout, component, dan navigation flow.",
+      "Responsive canvas membantu memastikan tampilan tetap rapi di ukuran layar berbeda.",
+    ],
+    skills: ["project setup", "page", "responsive"],
+    code: `Project: RPL Student App
+Pages:
+  - SplashPage
+  - LoginPage
+  - HomePage
+
+Responsive rules:
+  mobile: single column
+  tablet: two columns`,
+    mission:
+      "Siapkan project FlutterFlow untuk aplikasi profil siswa XII RPL dengan halaman Splash, Login, dan Home.",
+    games: [
+      {
+        id: "ff1-choice",
+        kind: "choice",
+        title: "Builder Scanner",
+        prompt: "Bagian FlutterFlow yang dipakai untuk menyusun UI secara visual adalah...",
+        options: ["Canvas", "DNS Zone", "Terminal Linux", "Package Registry"],
+        answer: "Canvas",
+        hint: "Canvas adalah area utama untuk menaruh widget dan melihat tampilan aplikasi.",
+      },
+      {
+        id: "ff1-sequence",
+        kind: "sequence",
+        title: "Project Starter",
+        prompt: "Susun langkah awal membuat project FlutterFlow.",
+        options: ["Buat halaman pertama", "Pilih template atau blank app", "Buat project baru"],
+        answer: ["Buat project baru", "Pilih template atau blank app", "Buat halaman pertama"],
+        hint: "Project dibuat dulu, baru memilih dasar app, lalu menambahkan halaman.",
+      },
+      {
+        id: "ff1-locate",
+        kind: "locate",
+        title: "Page Flow Bug",
+        prompt: "Klik baris yang membuat alur halaman tidak lengkap.",
+        codeLines: [
+          { id: "1", label: "01", text: "Project dibuat dengan nama RPL Student App" },
+          { id: "2", label: "02", text: "SplashPage dibuat sebagai halaman pembuka" },
+          { id: "3", label: "03", text: "HomePage dihapus tetapi tetap dijadikan target navigasi" },
+          { id: "4", label: "04", text: "LoginPage disiapkan untuk autentikasi" },
+        ],
+        answer: "3",
+        hint: "Target navigasi harus mengarah ke page yang masih ada.",
+      },
+      {
+        id: "ff1-output",
+        kind: "output",
+        title: "Page Counter",
+        prompt: "Berapa jumlah page aktif pada konfigurasi ini?",
+        code: `pages = ["SplashPage", "LoginPage", "HomePage"]
+print(len(pages))`,
+        options: ["1", "2", "3", "Error"],
+        answer: "3",
+        hint: "List berisi tiga nama page.",
+      },
+      {
+        id: "ff1-live",
+        kind: "live-code",
+        title: "Live Config: Starter App",
+        prompt: "Tulis konfigurasi teks yang memuat SplashPage, LoginPage, dan HomePage.",
+        starter: `project = "RPL Student App"
+pages = [
+
+]
+`,
+        requirements: [
+          "Ada nama project RPL Student App.",
+          "Ada SplashPage.",
+          "Ada LoginPage dan HomePage.",
+        ],
+        checks: [
+          { label: "project", pattern: "RPL Student App" },
+          { label: "SplashPage", pattern: "SplashPage" },
+          { label: "Login dan Home", pattern: "LoginPage.*HomePage|HomePage.*LoginPage", flags: "s" },
+        ],
+        successMessage: "Konfigurasi starter app FlutterFlow sudah lengkap.",
+        hint: "Isi pages dengan tiga string: SplashPage, LoginPage, dan HomePage.",
+      },
+    ],
+  },
+  {
+    id: 102,
+    slug: "flutterflow-ui-layout",
+    title: "Modul 2",
+    subtitle: "UI Layout System",
+    focus: "Widget tree, container, row, column, spacing, dan component",
+    minutes: 55,
+    level: "Dasar",
+    color: "#37e5a5",
+    icon: "data",
+    theory: [
+      "Widget tree menentukan hubungan parent dan child pada tampilan aplikasi.",
+      "Column menyusun child secara vertikal, sedangkan Row menyusun child secara horizontal.",
+      "Component dipakai untuk bagian UI yang berulang seperti card siswa, navbar, atau tombol aksi.",
+    ],
+    skills: ["widget tree", "row/column", "component"],
+    code: `HomePage
+  Column
+    HeaderProfile
+    StudentStatsRow
+    ProjectCardList`,
+    mission:
+      "Bangun struktur HomePage berisi header profil, ringkasan statistik, dan daftar project siswa.",
+    games: [
+      {
+        id: "ff2-choice",
+        kind: "choice",
+        title: "Layout Direction",
+        prompt: "Widget yang paling tepat untuk menyusun konten dari atas ke bawah adalah...",
+        options: ["Column", "Row", "Stack only", "Divider"],
+        answer: "Column",
+        hint: "Column menyusun child secara vertikal.",
+      },
+      {
+        id: "ff2-sequence",
+        kind: "sequence",
+        title: "Widget Tree Builder",
+        prompt: "Susun widget tree HomePage dari parent ke child.",
+        options: ["ProjectCardList", "Column", "HomePage"],
+        answer: ["HomePage", "Column", "ProjectCardList"],
+        hint: "Mulai dari page, lalu layout parent, lalu child.",
+      },
+      {
+        id: "ff2-locate",
+        kind: "locate",
+        title: "Spacing Radar",
+        prompt: "Klik baris yang berisiko membuat UI terlalu rapat.",
+        codeLines: [
+          { id: "1", label: "01", text: "Container padding = 16" },
+          { id: "2", label: "02", text: "Column spacing = 0 untuk semua section" },
+          { id: "3", label: "03", text: "Card radius = 8" },
+          { id: "4", label: "04", text: "Text maxLines = 2" },
+        ],
+        answer: "2",
+        hint: "Section utama butuh jarak agar mudah dipindai.",
+      },
+      {
+        id: "ff2-output",
+        kind: "output",
+        title: "Layout Count",
+        prompt: "Berapa child langsung milik Column?",
+        code: `Column children:
+- HeaderProfile
+- StudentStatsRow
+- ProjectCardList`,
+        options: ["1", "2", "3", "4"],
+        answer: "3",
+        hint: "Hitung item yang berada tepat di bawah Column.",
+      },
+      {
+        id: "ff2-live",
+        kind: "live-code",
+        title: "Live Config: Home Layout",
+        prompt: "Tulis struktur layout yang memuat Column, HeaderProfile, StudentStatsRow, dan ProjectCardList.",
+        starter: `HomePage
+  # lengkapi struktur
+`,
+        requirements: [
+          "Ada Column.",
+          "Ada HeaderProfile.",
+          "Ada StudentStatsRow dan ProjectCardList.",
+        ],
+        checks: [
+          { label: "Column", pattern: "Column" },
+          { label: "HeaderProfile", pattern: "HeaderProfile" },
+          { label: "Stats dan Card", pattern: "StudentStatsRow.*ProjectCardList|ProjectCardList.*StudentStatsRow", flags: "s" },
+        ],
+        successMessage: "Struktur HomePage sudah siap dibuat di FlutterFlow.",
+        hint: "Tulis child di bawah Column dengan indentasi sederhana.",
+      },
+    ],
+  },
+  {
+    id: 103,
+    slug: "flutterflow-navigation",
+    title: "Modul 3",
+    subtitle: "Navigation and App Flow",
+    focus: "Initial page, actions, routes, bottom navigation, dan guards",
+    minutes: 55,
+    level: "Menengah",
+    color: "#ffd166",
+    icon: "flow",
+    theory: [
+      "Initial page menentukan halaman pertama yang dibuka ketika aplikasi berjalan.",
+      "Action digunakan untuk berpindah halaman, membuka dialog, atau menjalankan proses setelah event.",
+      "Navigation guard membantu mengarahkan user sesuai status login atau kelengkapan data.",
+    ],
+    skills: ["actions", "routes", "guards"],
+    code: `On App Start:
+  if authUser != null -> HomePage
+  else -> LoginPage
+
+BottomNav:
+  Home | Projects | Profile`,
+    mission:
+      "Rancang alur aplikasi dari Splash ke Login atau Home, lalu buat bottom navigation tiga tab.",
+    games: [
+      {
+        id: "ff3-choice",
+        kind: "choice",
+        title: "Route Guard",
+        prompt: "Kondisi apa yang paling tepat untuk mengirim user login langsung ke HomePage?",
+        options: ["authUser != null", "theme == dark", "button disabled", "padding > 16"],
+        answer: "authUser != null",
+        hint: "Status autentikasi menentukan user sudah login atau belum.",
+      },
+      {
+        id: "ff3-sequence",
+        kind: "sequence",
+        title: "Auth Flow",
+        prompt: "Susun alur navigasi awal aplikasi.",
+        options: ["HomePage jika sudah login", "SplashPage dibuka", "LoginPage jika belum login"],
+        answer: ["SplashPage dibuka", "HomePage jika sudah login", "LoginPage jika belum login"],
+        hint: "Splash mengecek state, lalu bercabang ke tujuan yang sesuai.",
+      },
+      {
+        id: "ff3-locate",
+        kind: "locate",
+        title: "Navigation Loop",
+        prompt: "Klik baris yang bisa membuat user berputar kembali ke login setelah berhasil masuk.",
+        codeLines: [
+          { id: "1", label: "01", text: "Login success action: Navigate to HomePage" },
+          { id: "2", label: "02", text: "HomePage on load: Navigate to LoginPage tanpa cek auth" },
+          { id: "3", label: "03", text: "Profile tab: Navigate to ProfilePage" },
+          { id: "4", label: "04", text: "Logout action: Clear auth then LoginPage" },
+        ],
+        answer: "2",
+        hint: "Navigasi otomatis harus punya kondisi agar tidak membuat loop.",
+      },
+      {
+        id: "ff3-output",
+        kind: "output",
+        title: "Tab Reader",
+        prompt: "Tab mana yang aktif jika index bernilai 1?",
+        code: `tabs = ["Home", "Projects", "Profile"]
+print(tabs[1])`,
+        options: ["Home", "Projects", "Profile", "Error"],
+        answer: "Projects",
+        hint: "Index list dimulai dari 0.",
+      },
+      {
+        id: "ff3-live",
+        kind: "live-code",
+        title: "Live Config: Navigation Guard",
+        prompt: "Tulis rule yang memuat authUser, HomePage, dan LoginPage.",
+        starter: `if authUser:
+  navigate = ""
+else:
+  navigate = ""
+`,
+        requirements: [
+          "Ada authUser.",
+          "Ada HomePage.",
+          "Ada LoginPage.",
+        ],
+        checks: [
+          { label: "authUser", pattern: "authUser" },
+          { label: "HomePage", pattern: "HomePage" },
+          { label: "LoginPage", pattern: "LoginPage" },
+        ],
+        successMessage: "Navigation guard FlutterFlow sudah jelas.",
+        hint: "Isi navigate dengan HomePage saat authUser ada dan LoginPage saat kosong.",
+      },
+    ],
+  },
+  {
+    id: 104,
+    slug: "flutterflow-state",
+    title: "Modul 4",
+    subtitle: "State Management",
+    focus: "App state, page state, component state, dan conditional visibility",
+    minutes: 60,
+    level: "Menengah",
+    color: "#ff7a90",
+    icon: "function",
+    theory: [
+      "App state menyimpan nilai yang perlu diakses lintas halaman.",
+      "Page state cocok untuk data sementara yang hanya dipakai di satu halaman.",
+      "Conditional visibility membuat UI muncul atau hilang berdasarkan nilai state.",
+    ],
+    skills: ["app state", "page state", "visibility"],
+    code: `AppState:
+  selectedClass = "XII RPL"
+  isDarkMode = true
+
+HomePage:
+  showEmptyState = projectCount == 0`,
+    mission:
+      "Buat state untuk filter kelas, mode tampilan, dan empty state daftar project.",
+    games: [
+      {
+        id: "ff4-choice",
+        kind: "choice",
+        title: "State Scope",
+        prompt: "State yang perlu dipakai lintas banyak page sebaiknya disimpan sebagai...",
+        options: ["App State", "Page Padding", "Border Radius", "Asset Folder"],
+        answer: "App State",
+        hint: "App State tersedia lebih luas daripada Page State.",
+      },
+      {
+        id: "ff4-sequence",
+        kind: "sequence",
+        title: "State Update Flow",
+        prompt: "Susun alur update state filter kelas.",
+        options: ["Refresh daftar project", "User memilih kelas", "Update selectedClass"],
+        answer: ["User memilih kelas", "Update selectedClass", "Refresh daftar project"],
+        hint: "Event user mengubah state, lalu UI bereaksi.",
+      },
+      {
+        id: "ff4-locate",
+        kind: "locate",
+        title: "Scope Mismatch",
+        prompt: "Klik baris yang salah karena nilai dibutuhkan lintas page tetapi disimpan terlalu lokal.",
+        codeLines: [
+          { id: "1", label: "01", text: "selectedClass dipakai di HomePage dan ProjectPage" },
+          { id: "2", label: "02", text: "selectedClass disimpan sebagai Page State HomePage saja" },
+          { id: "3", label: "03", text: "isDarkMode disimpan sebagai App State" },
+          { id: "4", label: "04", text: "searchText disimpan sebagai Page State" },
+        ],
+        answer: "2",
+        hint: "Data lintas page sebaiknya bukan Page State di satu halaman saja.",
+      },
+      {
+        id: "ff4-output",
+        kind: "output",
+        title: "Visibility Logic",
+        prompt: "Jika projectCount = 0, apa nilai showEmptyState?",
+        code: `projectCount = 0
+showEmptyState = projectCount == 0`,
+        options: ["true", "false", "null", "HomePage"],
+        answer: "true",
+        hint: "0 == 0 bernilai benar.",
+      },
+      {
+        id: "ff4-live",
+        kind: "live-code",
+        title: "Live Config: App State",
+        prompt: "Tulis konfigurasi yang memuat selectedClass, isDarkMode, dan showEmptyState.",
+        starter: `AppState:
+
+HomePage:
+
+`,
+        requirements: [
+          "Ada selectedClass.",
+          "Ada isDarkMode.",
+          "Ada showEmptyState.",
+        ],
+        checks: [
+          { label: "selectedClass", pattern: "selectedClass" },
+          { label: "isDarkMode", pattern: "isDarkMode" },
+          { label: "showEmptyState", pattern: "showEmptyState" },
+        ],
+        successMessage: "State utama aplikasi sudah terdefinisi.",
+        hint: "Tuliskan selectedClass dan isDarkMode di AppState, showEmptyState di HomePage.",
+      },
+    ],
+  },
+  {
+    id: 105,
+    slug: "flutterflow-firebase",
+    title: "Modul 5",
+    subtitle: "Firebase Integration",
+    focus: "Authentication, Firestore collections, rules, dan query",
+    minutes: 70,
+    level: "Menengah",
+    color: "#ffa726",
+    icon: "data",
+    theory: [
+      "Firebase Authentication mengelola proses login, register, dan identitas user.",
+      "Firestore menyimpan data dalam collection dan document.",
+      "Security rules membatasi siapa yang boleh membaca atau menulis data.",
+    ],
+    skills: ["auth", "firestore", "rules"],
+    code: `collections:
+  users/{userId}
+  projects/{projectId}
+
+project fields:
+  title: string
+  ownerId: auth.uid
+  createdAt: timestamp`,
+    mission:
+      "Hubungkan FlutterFlow ke Firebase Auth dan Firestore untuk menyimpan data project siswa.",
+    games: [
+      {
+        id: "ff5-choice",
+        kind: "choice",
+        title: "Firestore Unit",
+        prompt: "Unit data di dalam collection Firestore disebut...",
+        options: ["Document", "Widget", "Canvas", "Breakpoint"],
+        answer: "Document",
+        hint: "Collection berisi document.",
+      },
+      {
+        id: "ff5-sequence",
+        kind: "sequence",
+        title: "Firebase Setup",
+        prompt: "Susun urutan integrasi Firebase di FlutterFlow.",
+        options: ["Aktifkan Auth dan Firestore", "Hubungkan project Firebase", "Buat collection schema"],
+        answer: ["Hubungkan project Firebase", "Aktifkan Auth dan Firestore", "Buat collection schema"],
+        hint: "Project harus terhubung sebelum fitur dan schema dipakai.",
+      },
+      {
+        id: "ff5-locate",
+        kind: "locate",
+        title: "Rules Alert",
+        prompt: "Klik baris rules yang terlalu terbuka untuk aplikasi siswa.",
+        codeLines: [
+          { id: "1", label: "01", text: "users: user hanya membaca dokumennya sendiri" },
+          { id: "2", label: "02", text: "projects: allow read, write: if true" },
+          { id: "3", label: "03", text: "projects.ownerId wajib sama dengan auth.uid saat create" },
+          { id: "4", label: "04", text: "createdAt diisi server timestamp" },
+        ],
+        answer: "2",
+        hint: "allow if true membuka akses untuk semua orang.",
+      },
+      {
+        id: "ff5-output",
+        kind: "output",
+        title: "Owner Field",
+        prompt: "Field mana yang dipakai untuk menghubungkan project dengan user login?",
+        code: `project = {
+  title: "Portfolio App",
+  ownerId: auth.uid
+}`,
+        options: ["title", "ownerId", "Portfolio App", "collection"],
+        answer: "ownerId",
+        hint: "ownerId menyimpan uid user pemilik data.",
+      },
+      {
+        id: "ff5-live",
+        kind: "live-code",
+        title: "Live Config: Firestore Schema",
+        prompt: "Tulis schema project yang punya title, ownerId, dan createdAt.",
+        starter: `projects:
+  fields:
+
+`,
+        requirements: [
+          "Ada collection projects.",
+          "Ada field title dan ownerId.",
+          "Ada field createdAt.",
+        ],
+        checks: [
+          { label: "projects", pattern: "projects" },
+          { label: "title ownerId", pattern: "title.*ownerId|ownerId.*title", flags: "s" },
+          { label: "createdAt", pattern: "createdAt" },
+        ],
+        successMessage: "Schema Firestore project sudah siap.",
+        hint: "Gunakan field title: string, ownerId: auth.uid, createdAt: timestamp.",
+      },
+    ],
+  },
+  {
+    id: 106,
+    slug: "flutterflow-actions-api",
+    title: "Modul 6",
+    subtitle: "Actions and API Calls",
+    focus: "Button action, backend query, REST API, JSON path, dan loading state",
+    minutes: 70,
+    level: "Lanjut",
+    color: "#5ec7ff",
+    icon: "api",
+    theory: [
+      "Action chain menjalankan beberapa langkah setelah event seperti tap, submit, atau page load.",
+      "API call menghubungkan aplikasi dengan layanan eksternal menggunakan endpoint HTTP.",
+      "Loading dan error state menjaga pengalaman user tetap jelas saat data sedang diproses.",
+    ],
+    skills: ["actions", "REST API", "JSON path"],
+    code: `Button Submit:
+  Validate Form
+  Create Firestore Document
+  Show Snackbar
+  Navigate to DetailPage`,
+    mission:
+      "Buat action tombol submit untuk validasi form, simpan data, tampilkan snackbar, lalu masuk detail page.",
+    games: [
+      {
+        id: "ff6-choice",
+        kind: "choice",
+        title: "Action Chain",
+        prompt: "Urutan beberapa aksi yang berjalan setelah tombol diklik disebut...",
+        options: ["Action Chain", "Color Palette", "Asset Export", "Grid Gap"],
+        answer: "Action Chain",
+        hint: "FlutterFlow menyebut rangkaian aksi sebagai action chain.",
+      },
+      {
+        id: "ff6-sequence",
+        kind: "sequence",
+        title: "Submit Pipeline",
+        prompt: "Susun action submit form yang aman.",
+        options: ["Navigate to DetailPage", "Validate Form", "Create Firestore Document"],
+        answer: ["Validate Form", "Create Firestore Document", "Navigate to DetailPage"],
+        hint: "Validasi dulu, simpan data, lalu pindah halaman.",
+      },
+      {
+        id: "ff6-locate",
+        kind: "locate",
+        title: "API Method Bug",
+        prompt: "Klik baris yang salah untuk membuat data baru lewat REST API.",
+        codeLines: [
+          { id: "1", label: "01", text: "Endpoint: /projects" },
+          { id: "2", label: "02", text: "Method: GET untuk membuat project baru" },
+          { id: "3", label: "03", text: "Body: title dan ownerId" },
+          { id: "4", label: "04", text: "Success state: show snackbar" },
+        ],
+        answer: "2",
+        hint: "Membuat data baru biasanya memakai POST.",
+      },
+      {
+        id: "ff6-output",
+        kind: "output",
+        title: "Status Reader",
+        prompt: "Status HTTP yang umum untuk data berhasil dibuat adalah...",
+        code: `POST /projects
+response.status = 201`,
+        options: ["200 OK", "201 Created", "404 Not Found", "500 Error"],
+        answer: "201 Created",
+        hint: "201 berarti resource baru berhasil dibuat.",
+      },
+      {
+        id: "ff6-live",
+        kind: "live-code",
+        title: "Live Config: Submit Action",
+        prompt: "Tulis action chain yang memuat Validate Form, Create Firestore Document, dan Navigate to DetailPage.",
+        starter: `SubmitButton actions:
+
+`,
+        requirements: [
+          "Ada Validate Form.",
+          "Ada Create Firestore Document.",
+          "Ada Navigate to DetailPage.",
+        ],
+        checks: [
+          { label: "validate", pattern: "Validate Form" },
+          { label: "create document", pattern: "Create Firestore Document" },
+          { label: "navigate", pattern: "Navigate.*DetailPage", flags: "s" },
+        ],
+        successMessage: "Action submit sudah end-to-end.",
+        hint: "Tuliskan tiga action secara berurutan di bawah SubmitButton actions.",
+      },
+    ],
+  },
+  {
+    id: 107,
+    slug: "flutterflow-custom-code",
+    title: "Modul 7",
+    subtitle: "Custom Code and Components",
+    focus: "Custom functions, custom widgets, pubspec dependencies, dan reusable logic",
+    minutes: 75,
+    level: "Lanjut",
+    color: "#b892ff",
+    icon: "oop",
+    theory: [
+      "Custom function cocok untuk logika kecil yang mengembalikan nilai.",
+      "Custom widget dipakai ketika UI atau behavior tidak tersedia dari widget bawaan.",
+      "Dependency tambahan perlu dikelola hati-hati agar build aplikasi tetap stabil.",
+    ],
+    skills: ["custom function", "custom widget", "dependency"],
+    code: `String formatScore(int score) {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  return "C";
+}`,
+    mission:
+      "Buat custom function untuk mengubah nilai project menjadi predikat A, B, atau C.",
+    games: [
+      {
+        id: "ff7-choice",
+        kind: "choice",
+        title: "Custom Function Fit",
+        prompt: "Untuk logika kecil yang mengubah score menjadi predikat, fitur yang paling tepat adalah...",
+        options: ["Custom Function", "Bottom Sheet", "Image Asset", "Theme Font"],
+        answer: "Custom Function",
+        hint: "Custom function menerima input dan mengembalikan output.",
+      },
+      {
+        id: "ff7-sequence",
+        kind: "sequence",
+        title: "Function Builder",
+        prompt: "Susun logika predikat score.",
+        options: [`return "C"`, `if score >= 90 return "A"`, `if score >= 80 return "B"`],
+        answer: [`if score >= 90 return "A"`, `if score >= 80 return "B"`, `return "C"`],
+        hint: "Cek nilai tertinggi dulu agar predikat A tidak tertimpa.",
+      },
+      {
+        id: "ff7-locate",
+        kind: "locate",
+        title: "Dependency Risk",
+        prompt: "Klik baris yang paling berisiko membuat build gagal.",
+        codeLines: [
+          { id: "1", label: "01", text: "Custom function memakai input score bertipe int" },
+          { id: "2", label: "02", text: "Dependency ditambahkan tanpa mengecek kompatibilitas Flutter" },
+          { id: "3", label: "03", text: "Return type function adalah String" },
+          { id: "4", label: "04", text: "Function diuji dengan score 90 dan 75" },
+        ],
+        answer: "2",
+        hint: "Dependency yang tidak kompatibel sering membuat build error.",
+      },
+      {
+        id: "ff7-output",
+        kind: "output",
+        title: "Predicate Output",
+        prompt: "Apa predikat untuk score 85?",
+        code: `if score >= 90 -> A
+if score >= 80 -> B
+else -> C
+
+score = 85`,
+        options: ["A", "B", "C", "Error"],
+        answer: "B",
+        hint: "85 tidak mencapai 90, tetapi mencapai 80.",
+      },
+      {
+        id: "ff7-live",
+        kind: "live-code",
+        title: "Live Code: formatScore",
+        prompt: "Tulis function formatScore yang menerima score dan mengembalikan A, B, atau C.",
+        starter: `String formatScore(int score) {
+
+}
+`,
+        requirements: [
+          "Ada nama formatScore.",
+          "Ada pengecekan score >= 90.",
+          "Ada return A, B, dan C.",
+        ],
+        checks: [
+          { label: "formatScore", pattern: "formatScore" },
+          { label: "score 90", pattern: "score\\s*>=\\s*90" },
+          { label: "return A B C", pattern: "return\\s+[\"']A[\"'].*return\\s+[\"']B[\"'].*return\\s+[\"']C[\"']", flags: "s" },
+        ],
+        successMessage: "Custom function predikat sudah valid.",
+        hint: "Gunakan if score >= 90 return \"A\"; if score >= 80 return \"B\"; return \"C\";",
+      },
+    ],
+  },
+  {
+    id: 108,
+    slug: "flutterflow-deploy",
+    title: "Modul 8",
+    subtitle: "Testing, Build, and Deployment",
+    focus: "Preview, testing, APK build, web deploy, dan release checklist",
+    minutes: 80,
+    level: "Lanjut",
+    color: "#4dd4ac",
+    icon: "debug",
+    theory: [
+      "Preview dipakai untuk mengecek flow dan UI sebelum build final.",
+      "Testing perlu mencakup login, CRUD data, empty state, error state, dan responsive layout.",
+      "Release checklist membantu memastikan environment, rules, dan aset sudah siap sebelum deploy.",
+    ],
+    skills: ["testing", "build", "deployment"],
+    code: `Release checklist:
+  Auth flow tested
+  Firestore rules reviewed
+  Android build passed
+  Web deploy verified`,
+    mission:
+      "Siapkan checklist rilis aplikasi FlutterFlow dari preview sampai build Android dan web deploy.",
+    games: [
+      {
+        id: "ff8-choice",
+        kind: "choice",
+        title: "Release Gate",
+        prompt: "Sebelum publish, hal yang wajib dicek untuk keamanan data Firestore adalah...",
+        options: ["Security rules", "Button radius", "Font preview", "Icon size"],
+        answer: "Security rules",
+        hint: "Rules menentukan siapa yang boleh membaca dan menulis data.",
+      },
+      {
+        id: "ff8-sequence",
+        kind: "sequence",
+        title: "Release Pipeline",
+        prompt: "Susun pipeline rilis aplikasi FlutterFlow.",
+        options: ["Build APK atau deploy web", "Preview dan test flow", "Review Firebase rules"],
+        answer: ["Preview dan test flow", "Review Firebase rules", "Build APK atau deploy web"],
+        hint: "Uji dulu, cek keamanan, baru build atau deploy.",
+      },
+      {
+        id: "ff8-locate",
+        kind: "locate",
+        title: "Release Blocker",
+        prompt: "Klik baris yang harus diperbaiki sebelum deploy.",
+        codeLines: [
+          { id: "1", label: "01", text: "Login berhasil untuk user valid" },
+          { id: "2", label: "02", text: "Firestore rules masih allow read, write: if true" },
+          { id: "3", label: "03", text: "Empty state project tampil dengan benar" },
+          { id: "4", label: "04", text: "Build Android berhasil" },
+        ],
+        answer: "2",
+        hint: "Rules terbuka adalah blocker keamanan.",
+      },
+      {
+        id: "ff8-output",
+        kind: "output",
+        title: "Checklist Count",
+        prompt: "Berapa item checklist yang sudah passed?",
+        code: `passed = ["auth", "rules", "android", "web"]
+print(len(passed))`,
+        options: ["2", "3", "4", "5"],
+        answer: "4",
+        hint: "List berisi empat item.",
+      },
+      {
+        id: "ff8-live",
+        kind: "live-code",
+        title: "Live Config: Release Checklist",
+        prompt: "Tulis checklist yang memuat Auth flow tested, Firestore rules reviewed, dan Android build passed.",
+        starter: `Release checklist:
+
+`,
+        requirements: [
+          "Ada Auth flow tested.",
+          "Ada Firestore rules reviewed.",
+          "Ada Android build passed.",
+        ],
+        checks: [
+          { label: "auth", pattern: "Auth flow tested" },
+          { label: "rules", pattern: "Firestore rules reviewed" },
+          { label: "android", pattern: "Android build passed" },
+        ],
+        successMessage: "Checklist rilis FlutterFlow sudah siap.",
+        hint: "Tuliskan tiga item checklist utama sebelum deploy.",
+      },
+    ],
+  },
+];
+
+export const lmsCourses: LmsCourse[] = [
+  {
+    id: "python",
+    slug: "pemrograman-web",
+    title: "Pemrograman Web",
+    shortTitle: "Python",
+    label: "Python",
+    description:
+      "Kelas Python untuk membangun fondasi pemrograman web, mulai dari sintaks dasar sampai API mini project.",
+    stack: "Python",
+    level: "XII RPL",
+    modules,
+  },
+  {
+    id: "flutterflow",
+    slug: "flutter-flow",
+    title: "Flutter Flow End-to-End",
+    shortTitle: "FlutterFlow",
+    label: "FlutterFlow",
+    description:
+      "Kelas end-to-end FlutterFlow dari project setup, UI, navigation, state, Firebase, API, custom code, sampai deployment.",
+    stack: "FlutterFlow",
+    level: "XII RPL",
+    modules: flutterFlowModules,
+  },
+];
+
+export const allModules = lmsCourses.flatMap((course) => course.modules);
+
+export function getCourseBySlug(slug: string) {
+  return lmsCourses.find((course) => course.slug === slug) ?? lmsCourses[0];
+}
 
 export const gamesPerModule = 5;
 
