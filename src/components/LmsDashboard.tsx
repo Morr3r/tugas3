@@ -93,6 +93,7 @@ type AuthSession = {
 
 const AUTH_STORAGE_KEY = "lms-auth";
 const MAX_HINTS_PER_MODULE = 3;
+const MODULE_GAME_SECONDS = 15 * 60;
 
 const moduleIcons: Record<ModuleIcon, LucideIcon> = {
   syntax: Code2,
@@ -111,6 +112,14 @@ function cx(...classes: Array<string | false | null | undefined>) {
 
 function shuffleItems<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+function formatDuration(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
 function LoadingScreen({
@@ -704,8 +713,6 @@ export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseS
                 completionRate={completionRate}
                 averageScore={averageScore}
               />
-
-              <TheoryPanel moduleItem={activeModule} />
 
               <TutorialVideoPanel key={activeModule.id} moduleItem={activeModule} />
 
@@ -1825,61 +1832,10 @@ function ModuleStage({
   );
 }
 
-function TheoryPanel({ moduleItem }: { moduleItem: LmsModule }) {
-  const [activeTheoryIndex, setActiveTheoryIndex] = useState(0);
-  const activeTheory = moduleItem.theory[activeTheoryIndex] ?? moduleItem.theory[0];
-
-  return (
-    <section className="grid items-start gap-4">
-      <div className="border border-white/10 bg-white/[0.055] p-4 backdrop-blur">
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2 text-white">
-            <BookOpen className="h-5 w-5 text-sky-200" />
-            <h3 className="text-lg font-semibold">Teori Inti</h3>
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-          {moduleItem.theory.map((item, index) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => setActiveTheoryIndex(index)}
-              className={cx(
-                "min-h-36 border p-4 text-left transition hover:-translate-y-0.5",
-                activeTheoryIndex === index
-                  ? "border-sky-300/35 bg-sky-300/10 text-white"
-                  : "border-white/10 bg-black/20 text-slate-300 hover:border-white/25 hover:bg-white/[0.075]",
-              )}
-            >
-              <p className="mb-3 text-sm font-semibold text-slate-500">
-                0{index + 1}
-              </p>
-              <p className="leading-7">{item}</p>
-            </button>
-          ))}
-        </div>
-        <div
-          className="mt-3 border p-4"
-          style={{
-            borderColor: `${moduleItem.color}44`,
-            background: `${moduleItem.color}12`,
-          }}
-        >
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-            <Lightbulb className="h-4 w-4" style={{ color: moduleItem.color }} />
-            Fokus teori {activeTheoryIndex + 1}
-          </div>
-          <p className="leading-7 text-slate-300">{activeTheory}</p>
-        </div>
-      </div>
-
-    </section>
-  );
-}
-
 function TutorialVideoPanel({ moduleItem }: { moduleItem: LmsModule }) {
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [materialOpen, setMaterialOpen] = useState(false);
   const tutorialSteps = getTutorialSteps(moduleItem);
   const activeStep = tutorialSteps[activeStepIndex];
   const progress = Math.round(((activeStepIndex + 1) / tutorialSteps.length) * 100);
@@ -1898,7 +1854,7 @@ function TutorialVideoPanel({ moduleItem }: { moduleItem: LmsModule }) {
 
         return current + 1;
       });
-    }, 3600);
+    }, 6500);
 
     return () => window.clearInterval(timer);
   }, [isPlaying, tutorialSteps.length]);
@@ -1912,11 +1868,12 @@ function TutorialVideoPanel({ moduleItem }: { moduleItem: LmsModule }) {
   }
 
   return (
-    <section
-      className="overflow-hidden border border-white/10 bg-white/[0.055] backdrop-blur"
-      style={getAccentStyle(moduleItem.color)}
-    >
-      <div className="grid min-h-[430px] lg:grid-cols-[minmax(0,1fr)_330px]">
+    <>
+      <section
+        className="overflow-hidden border border-white/10 bg-white/[0.055] backdrop-blur"
+        style={getAccentStyle(moduleItem.color)}
+      >
+        <div className="grid min-h-[430px] lg:grid-cols-[minmax(0,1fr)_330px]">
         <div className="relative min-w-0 border-b border-white/10 bg-[#06080d] p-4 lg:border-b-0 lg:border-r">
           <div
             className="absolute inset-0 opacity-45"
@@ -1971,15 +1928,14 @@ function TutorialVideoPanel({ moduleItem }: { moduleItem: LmsModule }) {
                   <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
                     {activeStep.narration}
                   </p>
-                  <div className="mt-5 border border-white/10 bg-black/35 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-                      <TerminalSquare className="h-4 w-4" style={{ color: moduleItem.color }} />
-                      Demo singkat
-                    </div>
-                    <pre className="max-h-44 overflow-auto whitespace-pre-wrap break-words font-mono text-sm leading-6 text-slate-200">
-                      <code>{activeStep.demo}</code>
-                    </pre>
-                  </div>
+                  <LiveCodingDemo
+                    key={activeStep.id}
+                    code={activeStep.demo}
+                    color={moduleItem.color}
+                    fileName={activeStep.fileName}
+                    isPlaying={isPlaying}
+                    output={activeStep.output}
+                  />
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -2012,15 +1968,25 @@ function TutorialVideoPanel({ moduleItem }: { moduleItem: LmsModule }) {
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsPlaying((current) => !current)}
-                  className="inline-flex items-center gap-2 border px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110"
-                  style={{ borderColor: moduleItem.color, background: moduleItem.color }}
-                >
-                  {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  {isPlaying ? "Pause Tutorial" : "Play Tutorial"}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMaterialOpen(true)}
+                    className="inline-flex items-center gap-2 border border-white/10 bg-white/[0.075] px-4 py-2 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/[0.12]"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Bahan Materi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPlaying((current) => !current)}
+                    className="inline-flex items-center gap-2 border px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+                    style={{ borderColor: moduleItem.color, background: moduleItem.color }}
+                  >
+                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    {isPlaying ? "Pause Tutorial" : "Play Tutorial"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2081,8 +2047,249 @@ function TutorialVideoPanel({ moduleItem }: { moduleItem: LmsModule }) {
             Setelah tutorial ini, lanjut ke game interaktif untuk menguji pemahaman modul.
           </div>
         </div>
+        </div>
+      </section>
+      <MaterialModal
+        moduleItem={moduleItem}
+        open={materialOpen}
+        onClose={() => setMaterialOpen(false)}
+      />
+    </>
+  );
+}
+
+function MaterialModal({
+  moduleItem,
+  open,
+  onClose,
+}: {
+  moduleItem: LmsModule;
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!open) {
+    return null;
+  }
+
+  const material = getModuleMaterial(moduleItem);
+
+  return (
+    <div
+      className="fixed inset-0 z-[95] grid place-items-center bg-black/75 px-4 py-6 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="material-modal-title"
+    >
+      <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden border border-white/10 bg-[#0b0d12] shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-white/[0.055] p-5">
+          <div className="min-w-0">
+            <div
+              className="mb-2 inline-flex items-center gap-2 border px-3 py-1 text-sm font-semibold"
+              style={{
+                borderColor: `${moduleItem.color}44`,
+                background: `${moduleItem.color}12`,
+                color: moduleItem.color,
+              }}
+            >
+              <BookOpen className="h-4 w-4" />
+              Bahan Materi
+            </div>
+            <h2 id="material-modal-title" className="text-2xl font-semibold text-white">
+              {moduleItem.title}: {moduleItem.subtitle}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+              Materi detail untuk dipakai sebelum mengerjakan checkpoint dan mini game.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-10 w-10 shrink-0 place-items-center border border-white/10 bg-white/[0.055] text-slate-300 transition hover:border-white/25 hover:text-white"
+            aria-label="Tutup bahan materi"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="max-h-[calc(90vh-156px)] overflow-y-auto p-5">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_330px]">
+            <div className="space-y-4">
+              {material.sections.map((section) => (
+                <article key={section.title} className="border border-white/10 bg-white/[0.045] p-4">
+                  <h3 className="text-lg font-semibold text-white">{section.title}</h3>
+                  <div className="mt-3 space-y-3">
+                    {section.paragraphs.map((paragraph) => (
+                      <p key={paragraph} className="text-sm leading-7 text-slate-300">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </article>
+              ))}
+
+              <article className="border border-white/10 bg-[#0d1117] p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm text-slate-300">
+                  <TerminalSquare className="h-4 w-4" style={{ color: moduleItem.color }} />
+                  contoh_kode
+                </div>
+                <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">
+                  <code>{moduleItem.code}</code>
+                </pre>
+              </article>
+            </div>
+
+            <aside className="space-y-4">
+              <div
+                className="border p-4"
+                style={{
+                  borderColor: `${moduleItem.color}33`,
+                  background: `${moduleItem.color}10`,
+                }}
+              >
+                <h3 className="font-semibold text-white">Fokus Modul</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{moduleItem.focus}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {moduleItem.skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="border px-2.5 py-1 text-xs font-semibold"
+                      style={{
+                        borderColor: `${moduleItem.color}44`,
+                        background: `${moduleItem.color}12`,
+                        color: moduleItem.color,
+                      }}
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border border-white/10 bg-black/25 p-4">
+                <h3 className="font-semibold text-white">Misi Praktik</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{moduleItem.mission}</p>
+              </div>
+
+              <div className="border border-white/10 bg-black/25 p-4">
+                <h3 className="font-semibold text-white">Checklist Belajar</h3>
+                <div className="mt-3 space-y-2">
+                  {material.checklist.map((item) => (
+                    <div key={item} className="flex items-start gap-2 text-sm leading-6 text-slate-300">
+                      <CheckCircle2
+                        className="mt-1 h-4 w-4 shrink-0"
+                        style={{ color: moduleItem.color }}
+                      />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 bg-black/25 p-4 text-right">
+          <button
+            type="button"
+            onClick={onClose}
+            className="border px-5 py-2 font-semibold text-slate-950 transition hover:brightness-110"
+            style={{ borderColor: moduleItem.color, background: moduleItem.color }}
+          >
+            Tutup materi
+          </button>
+        </div>
       </div>
-    </section>
+    </div>
+  );
+}
+
+function LiveCodingDemo({
+  code,
+  color,
+  fileName,
+  isPlaying,
+  output,
+}: {
+  code: string;
+  color: string;
+  fileName: string;
+  isPlaying: boolean;
+  output: string;
+}) {
+  const [typedText, setTypedText] = useState("");
+  const isComplete = typedText.length >= code.length;
+  const visibleText =
+    typedText || (isPlaying ? "" : "# Tekan Play Tutorial untuk mulai live coding...");
+  const lines = visibleText.split("\n");
+
+  useEffect(() => {
+    if (!isPlaying || isComplete) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setTypedText((current) => {
+        const nextLength = Math.min(code.length, current.length + Math.max(1, Math.ceil(code.length / 84)));
+        return code.slice(0, nextLength);
+      });
+    }, 48);
+
+    return () => window.clearInterval(timer);
+  }, [code, isComplete, isPlaying]);
+
+  return (
+    <div className="mt-5 overflow-hidden border border-white/10 bg-[#0b0f16]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-black/30 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-white">
+          <TerminalSquare className="h-4 w-4" style={{ color }} />
+          <span className="truncate">{fileName}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span
+            className={cx(
+              "inline-flex h-2.5 w-2.5 rounded-full",
+              isPlaying && !isComplete ? "animate-pulse" : "",
+            )}
+            style={{ background: isPlaying && !isComplete ? "#fb7185" : color }}
+          />
+          {isPlaying && !isComplete ? "REC live coding" : isComplete ? "Run complete" : "Paused"}
+        </div>
+      </div>
+
+      <div className="max-h-56 overflow-auto bg-[#0d1117] p-3 font-mono text-sm leading-6">
+        {lines.map((line, index) => (
+          <div key={`${index}-${line}`} className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-3">
+            <span className="select-none text-right text-slate-600">{index + 1}</span>
+            <pre
+              className={cx(
+                "min-h-6 whitespace-pre-wrap break-words",
+                typedText ? "text-slate-200" : "text-slate-500",
+              )}
+            >
+              <code>{line}</code>
+              {index === lines.length - 1 && !isComplete && (
+                <motion.span
+                  animate={{ opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 0.9, repeat: Infinity }}
+                  className="ml-0.5 inline-block h-4 w-2 translate-y-0.5"
+                  style={{ background: color }}
+                />
+              )}
+            </pre>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-white/10 bg-black/35 p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs uppercase text-slate-500">
+          <Activity className="h-3.5 w-3.5" />
+          Terminal output
+        </div>
+        <p className="font-mono text-sm text-slate-300">
+          {isComplete ? output : isPlaying ? "Mengetik kode..." : "Menunggu instruktur menekan Play."}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -2101,6 +2308,8 @@ function getTutorialSteps(moduleItem: LmsModule) {
       demo: `${moduleItem.title}
 Fokus: ${moduleItem.focus}
 Skill utama: ${moduleItem.skills.join(", ")}`,
+      fileName: "lesson_brief.py",
+      output: `Fokus modul ${moduleItem.title} sudah siap.`,
       checkpoint: `Pahami fokus modul: ${moduleItem.focus}.`,
     },
     {
@@ -2110,6 +2319,10 @@ Skill utama: ${moduleItem.skills.join(", ")}`,
         moduleItem.theory[1] ??
         `Perhatikan bagaimana ${firstSkill} dipakai dalam contoh yang tersedia.`,
       demo: codePreview,
+      fileName: moduleItem.skills.some((skill) => skill.toLowerCase().includes("widget"))
+        ? "main.dart"
+        : "live_demo.py",
+      output: `Contoh ${firstSkill} berhasil dibedah.`,
       checkpoint: `Temukan bagian kode yang memakai ${firstSkill}.`,
     },
     {
@@ -2123,9 +2336,55 @@ ${moduleItem.mission}
 
 Target:
 Gunakan ${moduleItem.skills.slice(0, 3).join(" + ")}.`,
+      fileName: "practice_plan.py",
+      output: "Misi praktik siap dikerjakan di game interaktif.",
       checkpoint: "Siapkan jawaban untuk game dan live coding setelah panel ini.",
     },
   ];
+}
+
+function getModuleMaterial(moduleItem: LmsModule) {
+  const primarySkill = moduleItem.skills[0] ?? moduleItem.subtitle;
+  const secondarySkill = moduleItem.skills[1] ?? moduleItem.focus;
+  const supportingSkill = moduleItem.skills[2] ?? "praktik mandiri";
+
+  return {
+    sections: [
+      {
+        title: "Gambaran Konsep",
+        paragraphs: [
+          `${moduleItem.subtitle} membahas ${moduleItem.focus.toLowerCase()}. Pada modul ini, materi tidak hanya dibaca sebagai teori, tetapi langsung dihubungkan dengan contoh kode dan latihan interaktif.`,
+          moduleItem.theory[0] ??
+            `Mulai dari ide utama ${moduleItem.subtitle}, lalu perhatikan bagaimana konsep tersebut muncul dalam contoh program.`,
+          `Target pemahaman awalnya adalah siswa dapat menjelaskan kapan ${primarySkill} dipakai, mengapa fitur itu penting, dan bagaimana pengaruhnya terhadap alur program.`,
+        ],
+      },
+      {
+        title: "Pembahasan Detail",
+        paragraphs: [
+          moduleItem.theory[1] ??
+            `Bagian ini menekankan penggunaan ${primarySkill} dalam kasus nyata yang dekat dengan proyek siswa.`,
+          `${secondarySkill} perlu diperhatikan karena biasanya menjadi titik yang menentukan apakah program hanya berjalan, atau benar-benar mudah dibaca dan mudah diperbaiki.`,
+          `Saat membaca contoh, cari bagian kode yang membuat data masuk, diproses, lalu menghasilkan output. Pola input, proses, dan output ini membantu kamu membedah program yang lebih besar.`,
+        ],
+      },
+      {
+        title: "Cara Mengerjakan Latihan",
+        paragraphs: [
+          moduleItem.theory[2] ??
+            `Hubungkan konsep ${supportingSkill} dengan misi praktik yang diberikan agar latihan tidak berhenti di hafalan sintaks.`,
+          `Kerjakan misi dengan urutan sederhana: pahami kebutuhan, tulis struktur awal, lengkapi logika utama, lalu cek output. Jika hasil belum sesuai, baca pesan error atau perilaku program dari bagian yang paling kecil.`,
+          `Gunakan skill ${moduleItem.skills.join(", ")} sebagai acuan utama saat menyelesaikan mini game dan live coding.`,
+        ],
+      },
+    ],
+    checklist: [
+      `Saya bisa menjelaskan fokus modul: ${moduleItem.focus}.`,
+      `Saya menemukan penggunaan ${primarySkill} pada contoh kode.`,
+      `Saya memahami hubungan contoh kode dengan misi: ${moduleItem.mission}`,
+      `Saya siap mengerjakan checkpoint video dan mini game tanpa hanya menebak jawaban.`,
+    ],
+  };
 }
 
 function getSeededGameIds(moduleItem: LmsModule, progress?: ProgressItem) {
@@ -2167,6 +2426,8 @@ function MiniGamePanel({
   const [showHint, setShowHint] = useState(false);
   const [resetNoticeOpen, setResetNoticeOpen] = useState(false);
   const [gameResetKey, setGameResetKey] = useState(0);
+  const [isChallengeStarted, setIsChallengeStarted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(MODULE_GAME_SECONDS);
 
   const activeGame =
     moduleItem.games.find((game) => game.id === activeGameId) ?? moduleItem.games[0];
@@ -2174,10 +2435,35 @@ function MiniGamePanel({
   const completedGameCount = completedGameIds.length;
   const gameScore = Math.round((completedGameCount / moduleItem.games.length) * 100);
   const isActiveGameComplete = completedGameIds.includes(activeGame.id);
+  const isTimeUp = timeLeft <= 0 && !progress?.completed;
   const remainingHints = Math.max(0, MAX_HINTS_PER_MODULE - hintUses);
-  const canOpenHint = remainingHints > 0;
+  const canOpenHint = remainingHints > 0 && isChallengeStarted && !isTimeUp;
+
+  useEffect(() => {
+    if (!isChallengeStarted || isTimeUp || progress?.completed) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setTimeLeft((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isChallengeStarted, isTimeUp, progress?.completed]);
+
+  function startChallenge() {
+    setIsChallengeStarted(true);
+    setTimeLeft(MODULE_GAME_SECONDS);
+    setStatus("idle");
+    setShowHint(false);
+    setResetNoticeOpen(false);
+  }
 
   function openHint() {
+    if (!canOpenHint) {
+      return;
+    }
+
     if (onUseHint()) {
       setShowHint(true);
     }
@@ -2193,11 +2479,17 @@ function MiniGamePanel({
     setStatus("idle");
     setResetNoticeOpen(false);
     setGameResetKey((current) => current + 1);
+    setIsChallengeStarted(false);
+    setTimeLeft(MODULE_GAME_SECONDS);
     onResetHints();
     onProgress(0, false);
   }
 
   function completeGame() {
+    if (!isChallengeStarted || isTimeUp) {
+      return;
+    }
+
     if (isActiveGameComplete) {
       setStatus("success");
       return;
@@ -2234,6 +2526,10 @@ function MiniGamePanel({
   }
 
   function missGame() {
+    if (!isChallengeStarted || isTimeUp) {
+      return;
+    }
+
     setAttempts((current) => current + 1);
     setStreak(0);
     setWrongAttempts((current) => {
@@ -2266,20 +2562,45 @@ function MiniGamePanel({
             <Gamepad2 className="h-4 w-4" />
             Mini game {activeGameIndex + 1}/{moduleItem.games.length} setelah teori
           </div>
+          <h3 className="mt-2 text-2xl font-semibold text-white">
+            Arena Evaluasi Modul
+          </h3>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400">
+            Soal akan terbuka setelah sesi dimulai. Selesaikan seluruh game dalam 15 menit.
+          </p>
         </div>
-        <div
-          className="shrink-0 border px-3 py-2 text-sm"
-          style={{
-            borderColor: `${moduleItem.color}66`,
-            background: `${moduleItem.color}14`,
-            color: moduleItem.color,
-          }}
-        >
-          Score modul: {gameScore}/100
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <div
+            className="border px-3 py-2 text-sm font-semibold"
+            style={{
+              borderColor: `${moduleItem.color}66`,
+              background: `${moduleItem.color}14`,
+              color: moduleItem.color,
+            }}
+          >
+            Score modul: {gameScore}/100
+          </div>
+          <div
+            className={cx(
+              "inline-flex items-center gap-2 border px-3 py-2 font-mono text-sm font-semibold",
+              isTimeUp
+                ? "border-rose-300/40 bg-rose-300/10 text-rose-100"
+                : "border-white/10 bg-black/30 text-white",
+            )}
+          >
+            <Timer className="h-4 w-4" />
+            {formatDuration(timeLeft)}
+          </div>
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 md:grid-cols-4">
+      <div className="mb-5 grid gap-3 md:grid-cols-5">
+        <MiniGameStat
+          icon={ShieldCheck}
+          label="Sesi"
+          value={isChallengeStarted ? (isTimeUp ? "Waktu habis" : "Aktif") : "Belum mulai"}
+          color={isChallengeStarted && !isTimeUp ? moduleItem.color : "#94a3b8"}
+        />
         <MiniGameStat icon={Award} label="Streak" value={`${streak} benar`} color={moduleItem.color} />
         <MiniGameStat icon={Timer} label="Percobaan" value={`${attempts} run`} color="#ffd166" />
         <MiniGameStat
@@ -2309,6 +2630,16 @@ function MiniGamePanel({
         </button>
       </div>
 
+      {!isChallengeStarted ? (
+        <MiniGameStartPanel
+          color={moduleItem.color}
+          moduleItem={moduleItem}
+          onStart={startChallenge}
+        />
+      ) : isTimeUp ? (
+        <MiniGameTimeUpPanel color={moduleItem.color} onRestart={restartModule} />
+      ) : (
+        <>
       <div className="mb-5 grid gap-2 sm:grid-cols-5">
         {moduleItem.games.map((game, index) => {
           const isActive = activeGame.id === game.id;
@@ -2429,6 +2760,8 @@ function MiniGamePanel({
           <p>Selesaikan game berurutan untuk membuka semua tantangan modul.</p>
         )}
       </div>
+        </>
+      )}
       {showHint && (
         <div className="fixed inset-0 z-[95] grid place-items-center bg-black/70 px-4 py-6 backdrop-blur-sm">
           <div
@@ -2500,6 +2833,131 @@ function MiniGamePanel({
         </div>
       )}
     </section>
+  );
+}
+
+function MiniGameStartPanel({
+  color,
+  moduleItem,
+  onStart,
+}: {
+  color: string;
+  moduleItem: LmsModule;
+  onStart: () => void;
+}) {
+  return (
+    <div className="relative overflow-hidden border border-white/10 bg-[#070a10] p-5 md:p-6">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-70"
+        style={{
+          background: `linear-gradient(135deg, ${color}20, transparent 34%), radial-gradient(circle at 82% 18%, ${color}22, transparent 28%)`,
+        }}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:34px_34px] opacity-30" />
+      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
+        <div className="min-w-0">
+          <div
+            className="mb-4 inline-flex items-center gap-2 border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em]"
+            style={{
+              borderColor: `${color}44`,
+              background: `${color}12`,
+              color,
+            }}
+          >
+            <CircleDot className="h-4 w-4" />
+            Locked Assessment
+          </div>
+          <h3 className="max-w-3xl text-3xl font-semibold text-white md:text-4xl">
+            Siap mulai tantangan {moduleItem.subtitle}?
+          </h3>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+            Soal sengaja disembunyikan sampai sesi dimulai. Setelah tombol mulai ditekan,
+            timer 15 menit berjalan dan semua jawaban akan dihitung sebagai percobaan modul.
+          </p>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="border border-white/10 bg-black/25 p-3">
+              <p className="text-xs uppercase text-slate-500">Durasi</p>
+              <p className="mt-1 font-mono text-xl font-semibold text-white">15:00</p>
+            </div>
+            <div className="border border-white/10 bg-black/25 p-3">
+              <p className="text-xs uppercase text-slate-500">Game</p>
+              <p className="mt-1 text-xl font-semibold text-white">{moduleItem.games.length} tahap</p>
+            </div>
+            <div className="border border-white/10 bg-black/25 p-3">
+              <p className="text-xs uppercase text-slate-500">Hint</p>
+              <p className="mt-1 text-xl font-semibold text-white">{MAX_HINTS_PER_MODULE} bantuan</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-white/10 bg-black/30 p-4">
+          <div className="mb-4 flex items-center gap-3">
+            <div
+              className="grid h-12 w-12 shrink-0 place-items-center border"
+              style={{
+                borderColor: `${color}55`,
+                background: `${color}14`,
+                color,
+              }}
+            >
+              <Target className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs uppercase text-slate-500">Target</p>
+              <p className="font-semibold text-white">Score 100/100</p>
+            </div>
+          </div>
+          <p className="text-sm leading-6 text-slate-400">
+            Kerjakan berurutan. Game berikutnya terbuka setelah game aktif selesai.
+          </p>
+          <button
+            type="button"
+            onClick={onStart}
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 border px-4 py-3 font-semibold text-slate-950 transition hover:brightness-110"
+            style={{ borderColor: color, background: color }}
+          >
+            <Play className="h-5 w-5" />
+            Mulai Mini Game
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniGameTimeUpPanel({
+  color,
+  onRestart,
+}: {
+  color: string;
+  onRestart: () => void;
+}) {
+  return (
+    <div className="border border-rose-300/25 bg-rose-300/10 p-5 md:p-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <div className="mb-3 inline-flex items-center gap-2 border border-rose-300/35 bg-rose-300/10 px-3 py-1 text-sm font-semibold text-rose-100">
+            <Timer className="h-4 w-4" />
+            Waktu Habis
+          </div>
+          <h3 className="text-2xl font-semibold text-white">Sesi 15 menit sudah selesai.</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+            Soal dikunci agar pengerjaan tetap adil. Mulai ulang modul untuk mendapatkan sesi
+            15 menit yang baru.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRestart}
+          className="inline-flex shrink-0 items-center justify-center gap-2 border px-4 py-3 font-semibold text-slate-950 transition hover:brightness-110"
+          style={{ borderColor: color, background: color }}
+        >
+          <RotateCcw className="h-5 w-5" />
+          Mulai Ulang
+        </button>
+      </div>
+    </div>
   );
 }
 
