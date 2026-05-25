@@ -825,7 +825,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
                 Portal Dasar Pemrograman XII RPL
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-8 text-slate-300">
-                Akses course Python dan Flutter Flow, mini game, dan live coding
+                Akses course Python dan Flutter, mini game, dan live coding
                 dalam satu ruang belajar digital.
               </p>
             </div>
@@ -933,7 +933,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
               </div>
               <div className="border border-white/10 bg-white/[0.045] p-3">
                 <p className="text-xs uppercase text-slate-500">Course</p>
-                <p className="mt-1 font-semibold text-white">Python & Flutter Flow</p>
+                <p className="mt-1 font-semibold text-white">Python & Flutter</p>
               </div>
             </div>
           </div>
@@ -1104,7 +1104,7 @@ function CourseOverview({
           </div>
         </header>
 
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="grid gap-5">
           <div className="space-y-5">
             <div className="border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl md:p-8">
               <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -1161,19 +1161,6 @@ function CourseOverview({
             </div>
           </div>
 
-          <aside className="space-y-5">
-            <section className="border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl">
-              <div className="mb-4 flex items-center gap-2 text-white">
-                <LineChart className="h-5 w-5 text-emerald-200" />
-                <h3 className="text-lg font-semibold">Study Analytics</h3>
-              </div>
-              <div className="grid gap-3">
-                <AnalyticsRow label="Course aktif" value={`${lmsCourses.length}`} />
-                <AnalyticsRow label="Modul" value={`${allModules.length}`} />
-              </div>
-            </section>
-
-          </aside>
         </section>
       </div>
     </main>
@@ -1273,7 +1260,7 @@ function GuideModal({
     },
     {
       title: "2. Dashboard Course",
-      body: "Setelah login, kamu masuk ke dashboard. Di sana tersedia course Python dan Flutter Flow. Panel analytics menampilkan jumlah modul, mini game, dan status database.",
+      body: "Setelah login, kamu masuk ke dashboard. Di sana tersedia course Python dan Flutter. Panel analytics menampilkan jumlah modul, mini game, dan status database.",
     },
     {
       title: "3. Masuk Course",
