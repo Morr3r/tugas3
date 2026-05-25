@@ -86,6 +86,7 @@ type ProgressItem = {
 type ProgressMap = Record<number, ProgressItem>;
 type AssessmentItem = {
   startedAt: string;
+  finishedAt?: string | null;
   activeGameId: string;
   completedGameIds: string[];
   failedGameIds: string[];
@@ -453,6 +454,7 @@ function useLmsProgress(
         for (const row of assessmentPayload.assessments ?? []) {
           nextAssessments[row.module_id] = {
             startedAt: row.started_at,
+            finishedAt: row.finished_at,
             activeGameId: row.active_game_id,
             completedGameIds: Array.isArray(row.completed_game_ids)
               ? row.completed_game_ids
@@ -551,6 +553,7 @@ function useLmsProgress(
           student_id: studentId,
           module_id: moduleId,
           started_at: assessment.startedAt,
+          finished_at: assessment.finishedAt ?? null,
           active_game_id: assessment.activeGameId,
           completed_game_ids: assessment.completedGameIds,
           failed_game_ids: assessment.failedGameIds,
@@ -2543,9 +2546,7 @@ function getModuleMaterial(moduleItem: LmsModule) {
 }
 
 function getSeededGameIds(moduleItem: LmsModule, progress?: ProgressItem) {
-  const seededCount = progress?.completed
-    ? moduleItem.games.length
-    : Math.floor(((progress?.score ?? 0) / 100) * moduleItem.games.length);
+  const seededCount = Math.floor(((progress?.score ?? 0) / 100) * moduleItem.games.length);
   const safeCount = Math.max(0, Math.min(moduleItem.games.length, seededCount));
 
   return moduleItem.games.slice(0, safeCount).map((game) => game.id);
@@ -2602,6 +2603,9 @@ function MiniGamePanel({
   const [showHint, setShowHint] = useState(false);
   const [gameResetKey, setGameResetKey] = useState(0);
   const [startedAt, setStartedAt] = useState(assessment?.startedAt ?? "");
+  const [finishedAt, setFinishedAt] = useState<string | null>(
+    assessment?.finishedAt ?? null,
+  );
   const [isChallengeStarted, setIsChallengeStarted] = useState(Boolean(assessment));
   const [timeLeft, setTimeLeft] = useState(() =>
     assessment?.startedAt ? getAssessmentTimeLeft(assessment.startedAt) : MODULE_GAME_SECONDS,
@@ -2619,15 +2623,16 @@ function MiniGamePanel({
   const answeredGameCount = isChallengeStarted
     ? answeredGameIds.length
     : savedCompletedGameIds.length;
+  const isAssessmentFinished = answeredGameCount >= moduleItem.games.length;
   const gameScore = Math.round((completedGameCount / moduleItem.games.length) * 100);
   const isActiveGameComplete = completedGameIds.includes(activeGame.id);
-  const isTimeUp = timeLeft <= 0 && !progress?.completed;
+  const isTimeUp = timeLeft <= 0 && !progress?.completed && !isAssessmentFinished;
   const remainingHints = Math.max(0, MAX_HINTS_PER_MODULE - persistedHintUses);
-  const canOpenHint = remainingHints > 0 && isChallengeStarted && !isTimeUp;
+  const canOpenHint = remainingHints > 0 && isChallengeStarted && !isTimeUp && !isAssessmentFinished;
   const isActiveGameLocked = failedGameIds.includes(activeGame.id);
 
   useEffect(() => {
-    if (!isChallengeStarted || !startedAt || progress?.completed) {
+    if (!isChallengeStarted || !startedAt || progress?.completed || isAssessmentFinished) {
       return;
     }
 
@@ -2636,7 +2641,7 @@ function MiniGamePanel({
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [isChallengeStarted, progress?.completed, startedAt]);
+  }, [isAssessmentFinished, isChallengeStarted, progress?.completed, startedAt]);
 
   useEffect(() => {
     if (!assessment) {
@@ -2656,6 +2661,7 @@ function MiniGamePanel({
       setStreak(assessment.streak);
       setPersistedHintUses(assessment.hintUses);
       setStartedAt(assessment.startedAt);
+      setFinishedAt(assessment.finishedAt ?? null);
       setIsChallengeStarted(true);
       setTimeLeft(getAssessmentTimeLeft(assessment.startedAt));
       setStatus(
@@ -2677,6 +2683,7 @@ function MiniGamePanel({
 
   function startChallenge() {
     const nextStartedAt = assessment?.startedAt ?? new Date().toISOString();
+    const nextFinishedAt = assessment?.finishedAt ?? null;
     const nextCompletedGameIds = assessment?.completedGameIds ?? savedCompletedGameIds;
     const nextFailedGameIds = assessment?.failedGameIds ?? [];
     const nextAnsweredCount = nextCompletedGameIds.length + nextFailedGameIds.length;
@@ -2690,6 +2697,7 @@ function MiniGamePanel({
     setActiveGameId(nextActiveGame.id);
     setIsChallengeStarted(true);
     setStartedAt(nextStartedAt);
+    setFinishedAt(nextFinishedAt);
     setTimeLeft(getAssessmentTimeLeft(nextStartedAt));
     setStatus(
       nextCompletedGameIds.includes(nextActiveGame.id)
@@ -2701,6 +2709,7 @@ function MiniGamePanel({
     setShowHint(false);
     persistAssessment({
       startedAt: nextStartedAt,
+      finishedAt: nextFinishedAt,
       activeGameId: nextActiveGame.id,
       completedGameIds: nextCompletedGameIds,
       failedGameIds: nextFailedGameIds,
@@ -2722,6 +2731,7 @@ function MiniGamePanel({
       setShowHint(true);
       persistAssessment({
         startedAt,
+        finishedAt,
         activeGameId,
         completedGameIds,
         failedGameIds,
@@ -2746,6 +2756,7 @@ function MiniGamePanel({
     setGameResetKey((current) => current + 1);
     setIsChallengeStarted(false);
     setStartedAt("");
+    setFinishedAt(null);
     setTimeLeft(MODULE_GAME_SECONDS);
     onResetHints();
     onProgress(0, false);
@@ -2764,8 +2775,12 @@ function MiniGamePanel({
     const nextCompletedIds = completedGameIds.includes(activeGame.id)
       ? completedGameIds
       : [...completedGameIds, activeGame.id];
+    const nextAnsweredGameIds = Array.from(new Set([...nextCompletedIds, ...failedGameIds]));
     const nextScore = Math.round((nextCompletedIds.length / moduleItem.games.length) * 100);
-    const isModuleComplete = nextCompletedIds.length === moduleItem.games.length;
+    const isModuleComplete = nextAnsweredGameIds.length === moduleItem.games.length;
+    const nextFinishedAt = isModuleComplete
+      ? finishedAt ?? new Date().toISOString()
+      : null;
     const nextAttempts = attempts + 1;
     const nextStreak = streak + 1;
     const nextActiveGame = isModuleComplete
@@ -2777,6 +2792,7 @@ function MiniGamePanel({
     setWrongAttempts(0);
     setStreak(nextStreak);
     setShowHint(false);
+    setFinishedAt(nextFinishedAt);
     setStatus("success");
     confetti({
       particleCount: 90,
@@ -2787,6 +2803,7 @@ function MiniGamePanel({
     onProgress(nextScore, isModuleComplete);
     persistAssessment({
       startedAt,
+      finishedAt: nextFinishedAt,
       activeGameId: nextActiveGame.id,
       completedGameIds: nextCompletedIds,
       failedGameIds,
@@ -2813,7 +2830,12 @@ function MiniGamePanel({
     const nextFailedGameIds = failedGameIds.includes(activeGame.id)
       ? failedGameIds
       : [...failedGameIds, activeGame.id];
+    const nextAnsweredGameIds = Array.from(new Set([...completedGameIds, ...nextFailedGameIds]));
     const isLastGame = activeGameIndex === moduleItem.games.length - 1;
+    const isModuleComplete = nextAnsweredGameIds.length === moduleItem.games.length;
+    const nextFinishedAt = isModuleComplete
+      ? finishedAt ?? new Date().toISOString()
+      : null;
     const nextAttempts = attempts + 1;
     const nextWrongAttempts = nextFailedGameIds.length;
     const nextActiveGame = isLastGame
@@ -2825,10 +2847,12 @@ function MiniGamePanel({
     setStreak(0);
     setWrongAttempts(nextWrongAttempts);
     setShowHint(false);
+    setFinishedAt(nextFinishedAt);
     setStatus("error");
-    onProgress(gameScore, false);
+    onProgress(gameScore, isModuleComplete);
     persistAssessment({
       startedAt,
+      finishedAt: nextFinishedAt,
       activeGameId: nextActiveGame.id,
       completedGameIds,
       failedGameIds: nextFailedGameIds,
@@ -3171,12 +3195,13 @@ function MiniGameStartPanel({
             </div>
             <div>
               <p className="text-xs uppercase text-slate-500">Target</p>
-              <p className="font-semibold text-white">Score 100/100</p>
+              <p className="font-semibold text-white">Selesaikan {moduleItem.games.length} game</p>
             </div>
           </div>
           <p className="text-sm leading-6 text-slate-400">
             Kerjakan berurutan. Setiap game hanya punya 1 kesempatan menjawab, dan game
-            berikutnya terbuka setelah game aktif selesai.
+            berikutnya terbuka setelah game aktif selesai. Modul selesai setelah semua game
+            dijawab, berapapun score akhirnya.
           </p>
           <button
             type="button"

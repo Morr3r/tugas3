@@ -125,6 +125,10 @@ export async function POST(request: NextRequest) {
     typeof body?.started_at === "string" && Number.isFinite(Date.parse(body.started_at))
       ? body.started_at
       : undefined;
+  const finishedAt =
+    typeof body?.finished_at === "string" && Number.isFinite(Date.parse(body.finished_at))
+      ? body.finished_at
+      : null;
 
   if (
     !Number.isFinite(attempts) ||
@@ -150,6 +154,7 @@ export async function POST(request: NextRequest) {
       streak,
       hintUses,
       startedAt,
+      finishedAt,
     });
 
     if (!row) {
@@ -160,6 +165,7 @@ export async function POST(request: NextRequest) {
             student_id: studentId,
             module_id: moduleId,
             started_at: startedAt ?? new Date().toISOString(),
+            finished_at: finishedAt,
             active_game_id: activeGameId,
             completed_game_ids: completedGameIds,
             failed_game_ids: failedGameIds,

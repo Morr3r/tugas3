@@ -15,6 +15,7 @@ export type AssessmentRow = {
   student_id: string;
   module_id: number;
   started_at: string;
+  finished_at: string | null;
   active_game_id: string;
   completed_game_ids: string[];
   failed_game_ids: string[];
@@ -87,22 +88,30 @@ async function ensureUserSchema(sql: SqlClient) {
 }
 
 async function ensureAssessmentSchema(sql: SqlClient) {
-  assessmentSchemaPromise ??= sql`
-    CREATE TABLE IF NOT EXISTS lms_assessments (
-      student_id TEXT NOT NULL,
-      module_id INTEGER NOT NULL,
-      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      active_game_id TEXT NOT NULL,
-      completed_game_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
-      failed_game_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
-      attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
-      wrong_attempts INTEGER NOT NULL DEFAULT 0 CHECK (wrong_attempts >= 0),
-      streak INTEGER NOT NULL DEFAULT 0 CHECK (streak >= 0),
-      hint_uses INTEGER NOT NULL DEFAULT 0 CHECK (hint_uses >= 0),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (student_id, module_id)
-    )
-  `.then(() => undefined);
+  assessmentSchemaPromise ??= (async () => {
+    await sql`
+      CREATE TABLE IF NOT EXISTS lms_assessments (
+        student_id TEXT NOT NULL,
+        module_id INTEGER NOT NULL,
+        started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        finished_at TIMESTAMPTZ,
+        active_game_id TEXT NOT NULL,
+        completed_game_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+        failed_game_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+        attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+        wrong_attempts INTEGER NOT NULL DEFAULT 0 CHECK (wrong_attempts >= 0),
+        streak INTEGER NOT NULL DEFAULT 0 CHECK (streak >= 0),
+        hint_uses INTEGER NOT NULL DEFAULT 0 CHECK (hint_uses >= 0),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (student_id, module_id)
+      )
+    `;
+
+    await sql`
+      ALTER TABLE lms_assessments
+      ADD COLUMN IF NOT EXISTS finished_at TIMESTAMPTZ
+    `;
+  })();
 
   await assessmentSchemaPromise;
 }
@@ -254,6 +263,7 @@ export async function readAssessments(studentId: string) {
       student_id,
       module_id,
       started_at,
+      finished_at,
       active_game_id,
       completed_game_ids,
       failed_game_ids,
@@ -281,6 +291,7 @@ export async function upsertAssessment({
   streak,
   hintUses,
   startedAt,
+  finishedAt,
 }: {
   studentId: string;
   moduleId: number;
@@ -292,6 +303,7 @@ export async function upsertAssessment({
   streak: number;
   hintUses: number;
   startedAt?: string;
+  finishedAt?: string | null;
 }) {
   const sql = getSqlClient();
 
@@ -302,11 +314,13 @@ export async function upsertAssessment({
   await ensureAssessmentSchema(sql);
 
   const safeStartedAt = startedAt ? new Date(startedAt).toISOString() : null;
+  const safeFinishedAt = finishedAt ? new Date(finishedAt).toISOString() : null;
   const rows = await sql`
     INSERT INTO lms_assessments (
       student_id,
       module_id,
       started_at,
+      finished_at,
       active_game_id,
       completed_game_ids,
       failed_game_ids,
@@ -320,6 +334,7 @@ export async function upsertAssessment({
       ${studentId},
       ${moduleId},
       COALESCE(${safeStartedAt}::timestamptz, NOW()),
+      ${safeFinishedAt}::timestamptz,
       ${activeGameId},
       ${JSON.stringify(completedGameIds)}::jsonb,
       ${JSON.stringify(failedGameIds)}::jsonb,
@@ -332,6 +347,7 @@ export async function upsertAssessment({
     ON CONFLICT (student_id, module_id)
     DO UPDATE SET
       active_game_id = EXCLUDED.active_game_id,
+      finished_at = EXCLUDED.finished_at,
       completed_game_ids = EXCLUDED.completed_game_ids,
       failed_game_ids = EXCLUDED.failed_game_ids,
       attempts = EXCLUDED.attempts,
@@ -343,6 +359,7 @@ export async function upsertAssessment({
       student_id,
       module_id,
       started_at,
+      finished_at,
       active_game_id,
       completed_game_ids,
       failed_game_ids,
