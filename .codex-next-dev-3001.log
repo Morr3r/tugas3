@@ -1,0 +1,18 @@
+
+> tugas3@0.1.0 dev
+> next dev --port 3001
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.1.21:3001
+- Environments: .env.local
+✓ Ready in 1002ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          14528
+- Dir:          C:\Users\naufa\Downloads\BJB\Tugas\tugas3
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 14528 /F to stop it.
+[?25h

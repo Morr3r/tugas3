@@ -246,6 +246,10 @@ function getAccentStyle(color: string): CSSProperties {
   } as CSSProperties;
 }
 
+function getModuleFileExtension(moduleItem: LmsModule) {
+  return moduleItem.id >= 100 ? "dart" : "py";
+}
+
 function isModuleUnlocked(
   moduleId: number,
   progress: ProgressMap,
@@ -645,12 +649,19 @@ export function LmsDashboard() {
   }
 
   function handleEnterCourse(courseSlug: string) {
+    const targetCourse = getCourseBySlug(courseSlug);
+    const firstModule = targetCourse.modules[0];
+
     setTransitionLoading({
       label: "Membuka course",
       detail: "Menyiapkan ruang belajar dan modul interaktif.",
     });
     window.setTimeout(() => {
-      router.push(`/course/${courseSlug}`);
+      router.push(
+        firstModule
+          ? `/course/${targetCourse.slug}/${firstModule.slug}`
+          : `/course/${targetCourse.slug}`,
+      );
     }, 350);
   }
 
@@ -718,12 +729,21 @@ export function LmsLoginPage() {
   );
 }
 
-export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseSlug?: string }) {
+export function LmsModuleDashboard({
+  courseSlug = "pemrograman-web",
+  initialModuleSlug,
+}: {
+  courseSlug?: string;
+  initialModuleSlug?: string;
+}) {
   const router = useRouter();
   const { isAuthenticated, isReady, logout, session } = useAuthSession();
   const course = useMemo(() => getCourseBySlug(courseSlug), [courseSlug]);
   const courseModules = course.modules;
-  const [activeId, setActiveId] = useState(() => courseModules[0].id);
+  const activeModule =
+    courseModules.find((moduleItem) => moduleItem.slug === initialModuleSlug) ??
+    courseModules[0];
+  const activeId = activeModule.id;
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -745,10 +765,22 @@ export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseS
     syncState,
   } = useLmsProgress(session?.studentId, courseModules);
 
-  const activeModule = useMemo(
-    () => courseModules.find((item) => item.id === activeId) ?? courseModules[0],
-    [activeId, courseModules],
-  );
+  function routeToModule(moduleId: number, replace = false) {
+    const nextModule = courseModules.find((moduleItem) => moduleItem.id === moduleId);
+
+    if (!nextModule) {
+      return;
+    }
+
+    const nextUrl = `/course/${course.slug}/${nextModule.slug}`;
+
+    if (replace) {
+      router.replace(nextUrl);
+      return;
+    }
+
+    router.push(nextUrl);
+  }
 
   function handleLogout() {
     setTransitionLoading({
@@ -837,7 +869,7 @@ export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseS
         moduleItems={courseModules}
         progress={progress}
         onToggleMinimized={() => setSidebarMinimized((current) => !current)}
-        onSelect={setActiveId}
+        onSelect={routeToModule}
       />
 
       <div
@@ -861,7 +893,7 @@ export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseS
             activeId={activeId}
             moduleItems={courseModules}
             progress={progress}
-            onSelect={setActiveId}
+            onSelect={routeToModule}
           />
 
           <div
@@ -905,7 +937,7 @@ export function LmsModuleDashboard({ courseSlug = "pemrograman-web" }: { courseS
                 course={course}
                 moduleItems={courseModules}
                 progress={progress}
-                onSelectModule={setActiveId}
+                onSelectModule={routeToModule}
               />
             )}
           </div>
@@ -1959,6 +1991,10 @@ function ModuleStage({
   completionRate: number;
   averageScore: number;
 }) {
+  const fileExtension = getModuleFileExtension(moduleItem);
+  const runtimeFileName =
+    course.id === "flutter" ? `flutter_runtime.${fileExtension}` : `python_runtime.${fileExtension}`;
+
   return (
     <section
       className="relative overflow-hidden border border-white/10 bg-white/[0.06] p-4 backdrop-blur-xl md:p-5"
@@ -2002,7 +2038,7 @@ function ModuleStage({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm text-slate-300">
               <TerminalSquare className="h-4 w-4 text-emerald-200" />
-              python_runtime.py
+              {runtimeFileName}
             </div>
             <div className="flex gap-1">
               <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
@@ -2484,6 +2520,7 @@ function getTutorialSteps(moduleItem: LmsModule) {
   const firstSkill = moduleItem.skills[0] ?? moduleItem.subtitle;
   const secondSkill = moduleItem.skills[1] ?? moduleItem.focus;
   const codePreview = moduleItem.code.split("\n").slice(0, 7).join("\n");
+  const fileExtension = getModuleFileExtension(moduleItem);
 
   return [
     {
@@ -2495,7 +2532,7 @@ function getTutorialSteps(moduleItem: LmsModule) {
       demo: `${moduleItem.title}
 Fokus: ${moduleItem.focus}
 Skill utama: ${moduleItem.skills.join(", ")}`,
-      fileName: "lesson_brief.py",
+      fileName: `lesson_brief.${fileExtension}`,
       output: `Fokus modul ${moduleItem.title} sudah siap.`,
       checkpoint: `Pahami fokus modul: ${moduleItem.focus}.`,
     },
@@ -2508,7 +2545,7 @@ Skill utama: ${moduleItem.skills.join(", ")}`,
       demo: codePreview,
       fileName: moduleItem.skills.some((skill) => skill.toLowerCase().includes("widget"))
         ? "main.dart"
-        : "live_demo.py",
+        : `live_demo.${fileExtension}`,
       output: `Contoh ${firstSkill} berhasil dibedah.`,
       checkpoint: `Temukan bagian kode yang memakai ${firstSkill}.`,
     },
@@ -2523,7 +2560,7 @@ ${moduleItem.mission}
 
 Target:
 Gunakan ${moduleItem.skills.slice(0, 3).join(" + ")}.`,
-      fileName: "practice_plan.py",
+      fileName: `practice_plan.${fileExtension}`,
       output: "Misi praktik siap dikerjakan di game interaktif.",
       checkpoint: "Siapkan jawaban untuk game dan live coding setelah panel ini.",
     },
@@ -2659,6 +2696,7 @@ function MiniGamePanel({
   const remainingHints = Math.max(0, MAX_HINTS_PER_MODULE - persistedHintUses);
   const canOpenHint = remainingHints > 0 && isChallengeStarted && !isTimeUp && !isAssessmentFinished;
   const isActiveGameLocked = failedGameIds.includes(activeGame.id);
+  const fileExtension = getModuleFileExtension(moduleItem);
 
   useEffect(() => {
     if (!isChallengeStarted || !startedAt || progress?.completed || isAssessmentFinished) {
@@ -3055,6 +3093,7 @@ function MiniGamePanel({
           <LocateGameView
             game={activeGame}
             color={moduleItem.color}
+            fileName={`bug_scan.${fileExtension}`}
             isComplete={isActiveGameComplete}
             isLocked={isActiveGameLocked}
             onComplete={completeGame}
@@ -3065,6 +3104,7 @@ function MiniGamePanel({
           <OutputGameView
             game={activeGame}
             color={moduleItem.color}
+            fileName={`output_probe.${fileExtension}`}
             isComplete={isActiveGameComplete}
             isLocked={isActiveGameLocked}
             onComplete={completeGame}
@@ -3075,6 +3115,7 @@ function MiniGamePanel({
           <LiveCodeGameView
             game={activeGame}
             color={moduleItem.color}
+            fileName={`live_editor.${fileExtension}`}
             isComplete={isActiveGameComplete}
             isLocked={isActiveGameLocked}
             onComplete={completeGame}
@@ -3594,6 +3635,7 @@ function ChoiceGameView({
 function LocateGameView({
   game,
   color,
+  fileName,
   isComplete,
   isLocked,
   onComplete,
@@ -3601,6 +3643,7 @@ function LocateGameView({
 }: {
   game: LocateGame;
   color: string;
+  fileName: string;
   isComplete: boolean;
   isLocked: boolean;
   onComplete: () => void;
@@ -3632,7 +3675,7 @@ function LocateGameView({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-slate-300">
           <Bug className="h-4 w-4 text-amber-200" />
-          bug_scan.py
+          {fileName}
         </div>
         <span className="border border-white/10 bg-black/20 px-3 py-1 text-xs text-slate-400">
           Scan {wrongLineIds.length}/{game.codeLines.length}
@@ -3684,6 +3727,7 @@ function LocateGameView({
 function OutputGameView({
   game,
   color,
+  fileName,
   isComplete,
   isLocked,
   onComplete,
@@ -3691,6 +3735,7 @@ function OutputGameView({
 }: {
   game: OutputGame;
   color: string;
+  fileName: string;
   isComplete: boolean;
   isLocked: boolean;
   onComplete: () => void;
@@ -3723,7 +3768,7 @@ function OutputGameView({
       <div className="border border-white/10 bg-[#0d1117] p-4">
         <div className="mb-3 flex items-center gap-2 text-sm text-slate-300">
           <TerminalSquare className="h-4 w-4 text-emerald-200" />
-          output_probe.py
+          {fileName}
         </div>
         <pre className="overflow-auto whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">
           <code>{game.code}</code>
@@ -3788,6 +3833,7 @@ function OutputGameView({
 function LiveCodeGameView({
   game,
   color,
+  fileName,
   isComplete,
   isLocked,
   onComplete,
@@ -3795,6 +3841,7 @@ function LiveCodeGameView({
 }: {
   game: LiveCodeGame;
   color: string;
+  fileName: string;
   isComplete: boolean;
   isLocked: boolean;
   onComplete: () => void;
@@ -3842,7 +3889,7 @@ function LiveCodeGameView({
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-2 text-sm text-slate-300">
             <TerminalSquare className="h-4 w-4 text-emerald-200" />
-            live_editor.py
+            {fileName}
           </div>
           <div className="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
             <Keyboard className="h-3.5 w-3.5" />

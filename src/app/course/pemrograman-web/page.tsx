@@ -1,5 +1,7 @@
-import { LmsModuleDashboard } from "@/components/LmsDashboard";
+import { redirect } from "next/navigation";
+import { getCourseBySlug } from "@/lib/modules";
 
 export default function PemrogramanWebPage() {
-  return <LmsModuleDashboard courseSlug="pemrograman-web" />;
+  const course = getCourseBySlug("pemrograman-web");
+  redirect(`/course/${course.slug}/${course.modules[0].slug}`);
 }
