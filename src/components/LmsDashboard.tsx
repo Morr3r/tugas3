@@ -911,10 +911,10 @@ export function LmsModuleDashboard({
                 averageScore={averageScore}
               />
 
-              <TutorialVideoPanel key={activeModule.id} moduleItem={activeModule} />
+              <TutorialVideoPanel key={`tutorial-${activeModule.id}`} moduleItem={activeModule} />
 
               <MiniGamePanel
-                key={activeModule.id}
+                key={`game-${activeModule.id}`}
                 hintUses={hintUsesByModule[activeModule.id] ?? 0}
                 moduleItem={activeModule}
                 assessment={assessments[activeModule.id]}
@@ -1552,15 +1552,6 @@ function GuideModal({
                 <p className="mt-2 text-sm leading-6 text-slate-300">{section.body}</p>
               </article>
             ))}
-          </div>
-
-          <div className="mt-5 border border-emerald-300/25 bg-emerald-300/10 p-4">
-            <h3 className="font-semibold text-emerald-100">Target belajar</h3>
-            <p className="mt-2 text-sm leading-6 text-emerald-50/90">
-              Selesaikan semua 8 modul secara berurutan. Setiap modul selesai jika score
-              modul mencapai 100 dari lima mini game. Setelah itu modul berikutnya akan
-              otomatis terbuka.
-            </p>
           </div>
         </div>
 
