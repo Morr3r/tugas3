@@ -2562,40 +2562,51 @@ function getModuleMaterial(moduleItem: LmsModule) {
   const primarySkill = moduleItem.skills[0] ?? moduleItem.subtitle;
   const secondarySkill = moduleItem.skills[1] ?? moduleItem.focus;
   const supportingSkill = moduleItem.skills[2] ?? "praktik mandiri";
+  const additionalTheory = moduleItem.theory.slice(3);
+  const sections = [
+    {
+      title: "Gambaran Konsep",
+      paragraphs: [
+        `${moduleItem.subtitle} membahas ${moduleItem.focus.toLowerCase()}. Pada modul ini, materi tidak hanya dibaca sebagai teori, tetapi langsung dihubungkan dengan contoh kode dan latihan interaktif.`,
+        moduleItem.theory[0] ??
+          `Mulai dari ide utama ${moduleItem.subtitle}, lalu perhatikan bagaimana konsep tersebut muncul dalam contoh program.`,
+        `Target pemahaman awalnya adalah siswa dapat menjelaskan kapan ${primarySkill} dipakai, mengapa fitur itu penting, dan bagaimana pengaruhnya terhadap alur program.`,
+      ],
+    },
+    {
+      title: "Pembahasan Detail",
+      paragraphs: [
+        moduleItem.theory[1] ??
+          `Bagian ini menekankan penggunaan ${primarySkill} dalam kasus nyata yang dekat dengan proyek siswa.`,
+        `${secondarySkill} perlu diperhatikan karena biasanya menjadi titik yang menentukan apakah program hanya berjalan, atau benar-benar mudah dibaca dan mudah diperbaiki.`,
+        `Saat membaca contoh, cari bagian kode yang membuat data masuk, diproses, lalu menghasilkan output. Pola input, proses, dan output ini membantu kamu membedah program yang lebih besar.`,
+      ],
+    },
+    ...(additionalTheory.length > 0
+      ? [
+          {
+            title: "Pendalaman Materi",
+            paragraphs: additionalTheory,
+          },
+        ]
+      : []),
+    {
+      title: "Cara Mengerjakan Latihan",
+      paragraphs: [
+        moduleItem.theory[2] ??
+          `Hubungkan konsep ${supportingSkill} dengan misi praktik yang diberikan agar latihan tidak berhenti di hafalan sintaks.`,
+        `Kerjakan misi dengan urutan sederhana: pahami kebutuhan, tulis struktur awal, lengkapi logika utama, lalu cek output. Jika hasil belum sesuai, baca pesan error atau perilaku program dari bagian yang paling kecil.`,
+        `Gunakan skill ${moduleItem.skills.join(", ")} sebagai acuan utama saat menyelesaikan mini game dan live coding.`,
+      ],
+    },
+  ];
 
   return {
-    sections: [
-      {
-        title: "Gambaran Konsep",
-        paragraphs: [
-          `${moduleItem.subtitle} membahas ${moduleItem.focus.toLowerCase()}. Pada modul ini, materi tidak hanya dibaca sebagai teori, tetapi langsung dihubungkan dengan contoh kode dan latihan interaktif.`,
-          moduleItem.theory[0] ??
-            `Mulai dari ide utama ${moduleItem.subtitle}, lalu perhatikan bagaimana konsep tersebut muncul dalam contoh program.`,
-          `Target pemahaman awalnya adalah siswa dapat menjelaskan kapan ${primarySkill} dipakai, mengapa fitur itu penting, dan bagaimana pengaruhnya terhadap alur program.`,
-        ],
-      },
-      {
-        title: "Pembahasan Detail",
-        paragraphs: [
-          moduleItem.theory[1] ??
-            `Bagian ini menekankan penggunaan ${primarySkill} dalam kasus nyata yang dekat dengan proyek siswa.`,
-          `${secondarySkill} perlu diperhatikan karena biasanya menjadi titik yang menentukan apakah program hanya berjalan, atau benar-benar mudah dibaca dan mudah diperbaiki.`,
-          `Saat membaca contoh, cari bagian kode yang membuat data masuk, diproses, lalu menghasilkan output. Pola input, proses, dan output ini membantu kamu membedah program yang lebih besar.`,
-        ],
-      },
-      {
-        title: "Cara Mengerjakan Latihan",
-        paragraphs: [
-          moduleItem.theory[2] ??
-            `Hubungkan konsep ${supportingSkill} dengan misi praktik yang diberikan agar latihan tidak berhenti di hafalan sintaks.`,
-          `Kerjakan misi dengan urutan sederhana: pahami kebutuhan, tulis struktur awal, lengkapi logika utama, lalu cek output. Jika hasil belum sesuai, baca pesan error atau perilaku program dari bagian yang paling kecil.`,
-          `Gunakan skill ${moduleItem.skills.join(", ")} sebagai acuan utama saat menyelesaikan mini game dan live coding.`,
-        ],
-      },
-    ],
+    sections,
     checklist: [
       `Saya bisa menjelaskan fokus modul: ${moduleItem.focus}.`,
       `Saya menemukan penggunaan ${primarySkill} pada contoh kode.`,
+      `Saya memahami peran ${secondarySkill} dan ${supportingSkill} pada alur program.`,
       `Saya memahami hubungan contoh kode dengan misi: ${moduleItem.mission}`,
       `Saya siap mengerjakan checkpoint video dan mini game tanpa hanya menebak jawaban.`,
     ],
