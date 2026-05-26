@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LMS XII RPL | SMKN 13 Bandung",
   description:
-    "Learning Management System interaktif untuk pembelajaran Python dan Flutter kelas XII RPL SMKN 13 Bandung.",
+    "Learning Management System interaktif untuk pembelajaran Python, JavaScript, dan Flutter kelas XII RPL SMKN 13 Bandung.",
   icons: {
     icon: "/icon.png",
     shortcut: "/icon.png",

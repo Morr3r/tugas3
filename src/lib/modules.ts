@@ -1766,11 +1766,902 @@ print(len(passed))`,
   },
 ];
 
+export const javascriptModules: LmsModule[] = [
+  {
+    id: 201,
+    slug: "javascript-fundamental",
+    title: "Modul 1",
+    subtitle: "JavaScript Fundamental",
+    focus: "Sintaks, variabel, tipe data dasar, dan output",
+    minutes: 45,
+    level: "Dasar",
+    color: "#f7df1e",
+    icon: "syntax",
+    theory: [
+      "JavaScript menjalankan instruksi dari atas ke bawah, sehingga urutan deklarasi dan pemanggilan kode memengaruhi hasil program.",
+      "Variabel dapat dibuat dengan let dan const. Gunakan const untuk nilai yang tidak diganti, dan let untuk nilai yang berubah.",
+      "String, number, boolean, null, dan undefined adalah tipe data dasar yang sering muncul dalam program JavaScript.",
+      "console.log() dipakai untuk menampilkan data ke console saat belajar, debugging, atau mengecek hasil proses sementara.",
+      "Template literal memakai backtick dan ${} untuk menyisipkan nilai variabel ke dalam teks secara rapi.",
+      "Nama variabel sebaiknya memakai camelCase seperti namaSiswa atau totalNilai agar sesuai kebiasaan JavaScript modern.",
+      "Semicolon tidak selalu wajib, tetapi konsistensi gaya penulisan membuat kode lebih mudah dibaca tim.",
+      "Error dasar sering terjadi karena tanda kutip tidak lengkap, kurung belum ditutup, atau variabel dipakai sebelum dibuat.",
+    ],
+    skills: ["let", "const", "console.log()"],
+    code: `const nama = "Afghany";
+const kelas = "XII RPL";
+let target = "Frontend Developer";
+
+console.log(nama + " dari " + kelas + " belajar JavaScript untuk menjadi " + target + ".");`,
+    mission:
+      "Buat program perkenalan digital siswa XII RPL memakai variabel JavaScript.",
+    games: [
+      {
+        id: "js1-choice",
+        kind: "choice",
+        title: "Variable Builder",
+        prompt: "Keyword mana yang tepat untuk nilai JavaScript yang tidak akan diganti?",
+        options: ["const", "def", "varian", "echo"],
+        answer: "const",
+        hint: "Keyword ini dipakai untuk binding yang tidak di-assign ulang.",
+      },
+      {
+        id: "js1-sequence",
+        kind: "sequence",
+        title: "Console Sequencer",
+        prompt: "Susun instruksi agar console menampilkan profil siswa dengan benar.",
+        options: [
+          `console.log(nama + " - " + kelas);`,
+          `const kelas = "XII RPL";`,
+          `const nama = "Afghany";`,
+        ],
+        answer: [
+          `const nama = "Afghany";`,
+          `const kelas = "XII RPL";`,
+          `console.log(nama + " - " + kelas);`,
+        ],
+        hint: "Variabel harus dibuat sebelum dipakai di console.log().",
+      },
+      {
+        id: "js1-locate",
+        kind: "locate",
+        title: "Quote Scanner",
+        prompt: "Klik baris yang salah karena string belum ditutup.",
+        codeLines: [
+          { id: "1", label: "01", text: `const nama = "Dina";` },
+          { id: "2", label: "02", text: `const kelas = "XII RPL;` },
+          { id: "3", label: "03", text: `console.log(nama);` },
+          { id: "4", label: "04", text: `console.log(kelas);` },
+        ],
+        answer: "2",
+        hint: "String harus punya tanda kutip pembuka dan penutup.",
+      },
+      {
+        id: "js1-output",
+        kind: "output",
+        title: "Console Vision",
+        prompt: "Output apa yang muncul dari kode berikut?",
+        code: `const nama = "Raka";
+const kelas = "XII RPL";
+console.log(nama + " - " + kelas);`,
+        options: ["Raka - XII RPL", "nama - kelas", "{nama} - {kelas}", "Error"],
+        answer: "Raka - XII RPL",
+        hint: "Operator + menggabungkan string dengan nilai variabel.",
+      },
+      {
+        id: "js1-live",
+        kind: "live-code",
+        title: "Live Coding: Profil JavaScript",
+        prompt:
+          "Tulis kode JavaScript yang membuat variabel nama dan kelas, lalu tampilkan dengan console.log().",
+        starter: `// Buat profil siswa
+const nama = "";
+const kelas = "";
+
+`,
+        requirements: [
+          "Ada const nama berisi teks.",
+          "Ada const kelas berisi XII RPL.",
+          "Ada console.log() yang menampilkan data.",
+        ],
+        checks: [
+          { label: "const nama", pattern: "const\\s+nama\\s*=\\s*[\"'][^\"']+[\"']" },
+          { label: "kelas XII RPL", pattern: "const\\s+kelas\\s*=\\s*[\"']XII RPL[\"']" },
+          { label: "console log", pattern: "console\\.log\\s*\\(" },
+        ],
+        successMessage: "Profil JavaScript sudah valid.",
+        hint: "Contoh: const nama = \"Afghany\"; lalu console.log(nama);",
+      },
+    ],
+  },
+  {
+    id: 202,
+    slug: "javascript-data",
+    title: "Modul 2",
+    subtitle: "Data dan Struktur JavaScript",
+    focus: "Array, object, indexing, dan property",
+    minutes: 50,
+    level: "Dasar",
+    color: "#74d4ff",
+    icon: "data",
+    theory: [
+      "Array menyimpan banyak nilai berurutan dan diakses memakai index angka mulai dari 0.",
+      "Object menyimpan data dalam pasangan property dan value, cocok untuk profil siswa atau konfigurasi aplikasi.",
+      "Property object dapat dibaca dengan dot notation seperti siswa.nama atau bracket notation seperti siswa[\"nama\"].",
+      "Array punya method seperti push(), map(), filter(), dan reduce() untuk mengolah kumpulan data.",
+      "Object dan array bisa digabung menjadi data nested, misalnya object siswa yang punya property nilai berisi array.",
+      "Gunakan nama property yang konsisten agar data mudah dipakai di UI, API, dan database.",
+      "Index yang tidak tersedia menghasilkan undefined, bukan error langsung, sehingga perlu dicek sebelum dipakai.",
+      "Struktur data yang jelas membuat logika halaman lebih mudah dirawat karena bentuk data dapat ditebak.",
+    ],
+    skills: ["array", "object", "property"],
+    code: `const siswa = {
+  nama: "Raka",
+  kelas: "XII RPL",
+  nilai: [88, 92, 95],
+};
+
+const total = siswa.nilai[0] + siswa.nilai[1] + siswa.nilai[2];
+console.log(siswa.nama + " punya total nilai " + total);`,
+    mission:
+      "Modelkan data siswa, kelas, dan nilai proyek memakai array dan object JavaScript.",
+    games: [
+      {
+        id: "js2-choice",
+        kind: "choice",
+        title: "Structure Matcher",
+        prompt: "Struktur paling tepat untuk menyimpan daftar nilai berurutan adalah...",
+        options: ["array", "boolean", "function", "string"],
+        answer: "array",
+        hint: "Struktur ini memakai index angka mulai dari 0.",
+      },
+      {
+        id: "js2-sequence",
+        kind: "sequence",
+        title: "Object Builder",
+        prompt: "Susun kode agar nama siswa dapat ditampilkan dari object.",
+        options: [
+          `console.log(siswa.nama);`,
+          `const siswa = {`,
+          `  nama: "Raka"`,
+          `};`,
+        ],
+        answer: [
+          `const siswa = {`,
+          `  nama: "Raka"`,
+          `};`,
+          `console.log(siswa.nama);`,
+        ],
+        hint: "Object dibuka, property ditulis, object ditutup, lalu property dibaca.",
+      },
+      {
+        id: "js2-locate",
+        kind: "locate",
+        title: "Property Hunt",
+        prompt: "Klik baris yang menghasilkan undefined karena property tidak tersedia.",
+        codeLines: [
+          { id: "1", label: "01", text: `const siswa = { nama: "Raka", kelas: "XII RPL" };` },
+          { id: "2", label: "02", text: `console.log(siswa.nama);` },
+          { id: "3", label: "03", text: `console.log(siswa.jurusan);` },
+          { id: "4", label: "04", text: `console.log(siswa.kelas);` },
+        ],
+        answer: "3",
+        hint: "Object hanya punya property nama dan kelas.",
+      },
+      {
+        id: "js2-output",
+        kind: "output",
+        title: "Index Decoder",
+        prompt: "Output apa yang muncul dari kode berikut?",
+        code: `const stack = ["HTML", "CSS", "JavaScript"];
+console.log(stack[2]);`,
+        options: ["HTML", "CSS", "JavaScript", "undefined"],
+        answer: "JavaScript",
+        hint: "Index array dimulai dari 0.",
+      },
+      {
+        id: "js2-live",
+        kind: "live-code",
+        title: "Live Coding: Data Siswa",
+        prompt:
+          "Tulis object siswa dengan nama, kelas, dan array nilai. Lalu tampilkan nama siswa.",
+        starter: `const siswa = {
+
+};
+
+`,
+        requirements: [
+          "Ada object bernama siswa.",
+          "Ada property nilai berisi array.",
+          "Ada console.log() yang membaca property siswa.",
+        ],
+        checks: [
+          { label: "object siswa", pattern: "const\\s+siswa\\s*=\\s*\\{" },
+          { label: "array nilai", pattern: "nilai\\s*:\\s*\\[[^\\]]+\\]" },
+          { label: "console property", pattern: "console\\.log\\s*\\([^\\)]*siswa\\." },
+        ],
+        successMessage: "Data siswa JavaScript sudah valid.",
+        hint: "Gunakan const siswa = { nama: \"Raka\", nilai: [88, 92] };",
+      },
+    ],
+  },
+  {
+    id: 203,
+    slug: "javascript-control-flow",
+    title: "Modul 3",
+    subtitle: "Control Flow JavaScript",
+    focus: "if, else, switch, for, dan operator logika",
+    minutes: 55,
+    level: "Menengah",
+    color: "#ffd166",
+    icon: "flow",
+    theory: [
+      "Control flow membuat program memilih jalur berdasarkan kondisi atau mengulang proses pada banyak data.",
+      "if, else if, dan else dipakai ketika keputusan bergantung pada ekspresi boolean.",
+      "Operator === membandingkan nilai dan tipe data, sehingga lebih aman daripada == untuk sebagian besar kasus.",
+      "Operator && membuat dua syarat harus benar, sedangkan || cukup salah satu syarat benar.",
+      "for cocok untuk pengulangan dengan jumlah iterasi yang jelas, misalnya menelusuri array nilai.",
+      "switch cocok untuk banyak pilihan yang berasal dari satu nilai seperti status, role, atau kategori.",
+      "Kurung kurawal menentukan batas blok kode. Baris di dalam blok hanya berjalan jika kondisi terpenuhi.",
+      "Urutkan kondisi dari yang paling spesifik ke yang umum agar hasil tidak tertutup oleh cabang sebelumnya.",
+    ],
+    skills: ["if", "for", "operator logika"],
+    code: `const nilai = 86;
+const absen = 96;
+
+if (nilai >= 80 && absen >= 90) {
+  console.log("Lulus dengan rekomendasi industri");
+} else if (nilai >= 75) {
+  console.log("Lulus");
+} else {
+  console.log("Perlu penguatan");
+}`,
+    mission:
+      "Bangun logika kelulusan siswa memakai percabangan dan operator logika JavaScript.",
+    games: [
+      {
+        id: "js3-choice",
+        kind: "choice",
+        title: "Logic Gate",
+        prompt: "Operator JavaScript mana yang membuat dua kondisi harus sama-sama benar?",
+        options: ["&&", "||", "!", "??"],
+        answer: "&&",
+        hint: "Operator ini berarti AND.",
+      },
+      {
+        id: "js3-sequence",
+        kind: "sequence",
+        title: "Branch Builder",
+        prompt: "Susun jalur keputusan JavaScript agar status nilai bisa ditentukan.",
+        options: [
+          `} else { status = "Perlu latihan"; }`,
+          `if (nilai >= 80) { status = "Kompeten";`,
+          `} else if (nilai >= 75) { status = "Lulus";`,
+        ],
+        answer: [
+          `if (nilai >= 80) { status = "Kompeten";`,
+          `} else if (nilai >= 75) { status = "Lulus";`,
+          `} else { status = "Perlu latihan"; }`,
+        ],
+        hint: "Percabangan dimulai dari if, lalu else if, lalu else.",
+      },
+      {
+        id: "js3-locate",
+        kind: "locate",
+        title: "Comparison Radar",
+        prompt: "Klik baris yang memakai assignment, bukan perbandingan.",
+        codeLines: [
+          { id: "1", label: "01", text: `const nilai = 90;` },
+          { id: "2", label: "02", text: `if (nilai = 90) {` },
+          { id: "3", label: "03", text: `  console.log("A");` },
+          { id: "4", label: "04", text: `}` },
+        ],
+        answer: "2",
+        hint: "Perbandingan ketat memakai ===, bukan =.",
+      },
+      {
+        id: "js3-output",
+        kind: "output",
+        title: "Branch Predictor",
+        prompt: "Output apa yang dicetak program?",
+        code: `const nilai = 78;
+if (nilai >= 80) {
+  console.log("Kompeten");
+} else if (nilai >= 75) {
+  console.log("Lulus");
+} else {
+  console.log("Latihan");
+}`,
+        options: ["Kompeten", "Lulus", "Latihan", "Tidak ada output"],
+        answer: "Lulus",
+        hint: "78 belum mencapai 80, tetapi mencapai 75.",
+      },
+      {
+        id: "js3-live",
+        kind: "live-code",
+        title: "Live Coding: Status Kelulusan",
+        prompt:
+          "Tulis logika kelulusan dengan if, else if, else, dan operator &&.",
+        starter: `const nilai = 86;
+const absen = 96;
+
+`,
+        requirements: [
+          "Ada if dengan operator &&.",
+          "Ada else if untuk jalur alternatif.",
+          "Ada else untuk kondisi terakhir.",
+        ],
+        checks: [
+          { label: "if", pattern: "\\bif\\s*\\(" },
+          { label: "operator &&", pattern: "&&" },
+          { label: "else if dan else", pattern: "else\\s+if[\\s\\S]*else" },
+        ],
+        successMessage: "Control flow JavaScript sudah lengkap.",
+        hint: "Gunakan if (nilai >= 80 && absen >= 90) { ... } else if (...) { ... } else { ... }.",
+      },
+    ],
+  },
+  {
+    id: 204,
+    slug: "javascript-functions",
+    title: "Modul 4",
+    subtitle: "Function JavaScript",
+    focus: "Function declaration, parameter, return, dan arrow function",
+    minutes: 60,
+    level: "Menengah",
+    color: "#ff7a90",
+    icon: "function",
+    theory: [
+      "Function membungkus langkah kerja agar dapat dipakai ulang tanpa menyalin kode.",
+      "Parameter adalah input function, sedangkan return mengirim hasil kembali ke pemanggil.",
+      "Function declaration memakai keyword function dan dapat dipanggil sebelum definisinya karena hoisting.",
+      "Arrow function sering dipakai untuk callback, method array, dan kode modern yang ringkas.",
+      "return berbeda dari console.log(). return menghasilkan nilai, sedangkan console.log() hanya menampilkan data.",
+      "Function yang jelas biasanya punya satu tanggung jawab, misalnya hitungRataRata atau formatPredikat.",
+      "Default parameter dapat dipakai ketika argumen tidak dikirim oleh pemanggil.",
+      "Nama function sebaiknya memakai kata kerja agar tugasnya mudah dipahami.",
+    ],
+    skills: ["function", "return", "arrow function"],
+    code: `function hitungPredikat(nilai) {
+  if (nilai >= 90) {
+    return "Sangat Baik";
+  }
+  if (nilai >= 80) {
+    return "Baik";
+  }
+  return "Perlu Latihan";
+}
+
+console.log(hitungPredikat(92));`,
+    mission:
+      "Buat function penilai proyek JavaScript agar banyak nilai siswa dapat diproses ulang.",
+    games: [
+      {
+        id: "js4-choice",
+        kind: "choice",
+        title: "Return Signal",
+        prompt: "Keyword apa yang mengirim hasil dari function ke pemanggil?",
+        options: ["return", "console", "break", "import"],
+        answer: "return",
+        hint: "Keyword ini membuat function menghasilkan nilai.",
+      },
+      {
+        id: "js4-sequence",
+        kind: "sequence",
+        title: "Function Forge",
+        prompt: "Rakit function yang mengembalikan total setelah diskon.",
+        options: [
+          `return harga - potongan;`,
+          `const potongan = harga * diskon;`,
+          `function hitungTotal(harga, diskon) {`,
+        ],
+        answer: [
+          `function hitungTotal(harga, diskon) {`,
+          `const potongan = harga * diskon;`,
+          `return harga - potongan;`,
+        ],
+        hint: "Header function berada di atas, lalu proses, lalu return.",
+      },
+      {
+        id: "js4-locate",
+        kind: "locate",
+        title: "Argument Tracker",
+        prompt: "Klik baris yang memanggil function dengan argumen kurang lengkap.",
+        codeLines: [
+          { id: "1", label: "01", text: `function total(a, b) {` },
+          { id: "2", label: "02", text: `  return a + b;` },
+          { id: "3", label: "03", text: `}` },
+          { id: "4", label: "04", text: `console.log(total(5));` },
+        ],
+        answer: "4",
+        hint: "Function total membutuhkan dua argumen.",
+      },
+      {
+        id: "js4-output",
+        kind: "output",
+        title: "Function Output",
+        prompt: "Apa output dari pemanggilan function ini?",
+        code: `function kali(a, b) {
+  return a * b;
+}
+
+console.log(kali(3, 4));`,
+        options: ["7", "12", "kali(3, 4)", "undefined"],
+        answer: "12",
+        hint: "Operator * mengalikan dua angka.",
+      },
+      {
+        id: "js4-live",
+        kind: "live-code",
+        title: "Live Coding: Function Predikat",
+        prompt:
+          "Buat function hitungPredikat(nilai) yang memakai parameter, if, dan return.",
+        starter: `function hitungPredikat(nilai) {
+  // tulis logika di sini
+}
+
+`,
+        requirements: [
+          "Ada function hitungPredikat dengan parameter nilai.",
+          "Ada percabangan if.",
+          "Ada minimal satu return.",
+        ],
+        checks: [
+          { label: "function parameter", pattern: "function\\s+hitungPredikat\\s*\\(\\s*nilai\\s*\\)" },
+          { label: "if", pattern: "\\bif\\s*\\(" },
+          { label: "return", pattern: "\\breturn\\b" },
+        ],
+        successMessage: "Function predikat JavaScript sudah bisa dipakai ulang.",
+        hint: "Gunakan function hitungPredikat(nilai) { if (...) return \"Baik\"; return \"Latihan\"; }",
+      },
+    ],
+  },
+  {
+    id: 205,
+    slug: "javascript-dom-events",
+    title: "Modul 5",
+    subtitle: "DOM dan Event",
+    focus: "querySelector, textContent, addEventListener, dan interaksi halaman",
+    minutes: 65,
+    level: "Menengah",
+    color: "#b892ff",
+    icon: "oop",
+    theory: [
+      "DOM adalah representasi elemen HTML yang dapat dibaca dan diubah oleh JavaScript.",
+      "document.querySelector() memilih elemen pertama yang cocok dengan selector CSS.",
+      "textContent dipakai untuk mengubah teks elemen tanpa memproses HTML di dalamnya.",
+      "addEventListener() memasang handler ketika user melakukan aksi seperti click, input, atau submit.",
+      "Event object menyimpan informasi aksi user, misalnya target input atau tombol yang diklik.",
+      "Manipulasi DOM sebaiknya jelas dan terbatas agar UI tidak sulit dilacak ketika aplikasi membesar.",
+      "Validasi input di sisi client membantu user cepat memperbaiki data sebelum dikirim ke server.",
+      "Gunakan class CSS untuk mengatur tampilan, lalu JavaScript cukup menambah atau menghapus class sesuai kondisi.",
+    ],
+    skills: ["querySelector", "addEventListener", "textContent"],
+    code: `const tombol = document.querySelector("#simpan");
+const statusEl = document.querySelector("#status");
+
+tombol.addEventListener("click", function () {
+  statusEl.textContent = "Profil berhasil disimpan";
+});`,
+    mission:
+      "Buat interaksi tombol yang mengubah status halaman profil siswa.",
+    games: [
+      {
+        id: "js5-choice",
+        kind: "choice",
+        title: "DOM Selector",
+        prompt: "Method mana yang memilih elemen pertama berdasarkan selector CSS?",
+        options: ["querySelector()", "print()", "fetchAll()", "useState()"],
+        answer: "querySelector()",
+        hint: "Method ini berada di object document.",
+      },
+      {
+        id: "js5-sequence",
+        kind: "sequence",
+        title: "Click Flow",
+        prompt: "Susun urutan membuat tombol mengubah teks status.",
+        options: [
+          `statusEl.textContent = "Tersimpan";`,
+          `tombol.addEventListener("click", function () {`,
+          `const tombol = document.querySelector("#simpan");`,
+        ],
+        answer: [
+          `const tombol = document.querySelector("#simpan");`,
+          `tombol.addEventListener("click", function () {`,
+          `statusEl.textContent = "Tersimpan";`,
+        ],
+        hint: "Elemen dipilih dulu, lalu event dipasang, lalu aksi dijalankan.",
+      },
+      {
+        id: "js5-locate",
+        kind: "locate",
+        title: "Selector Bug",
+        prompt: "Klik baris yang berisiko error karena selector tidak sesuai id tombol.",
+        codeLines: [
+          { id: "1", label: "01", text: `<button id="simpan">Simpan</button>` },
+          { id: "2", label: "02", text: `const tombol = document.querySelector("#submit");` },
+          { id: "3", label: "03", text: `tombol.addEventListener("click", simpanData);` },
+          { id: "4", label: "04", text: `function simpanData() { console.log("ok"); }` },
+        ],
+        answer: "2",
+        hint: "HTML memakai id simpan, tetapi selector memilih id submit.",
+      },
+      {
+        id: "js5-output",
+        kind: "output",
+        title: "Text Update",
+        prompt: "Setelah tombol diklik, teks apa yang ada di status?",
+        code: `statusEl.textContent = "Siap";
+statusEl.textContent = "Tersimpan";`,
+        options: ["Siap", "Tersimpan", "statusEl", "undefined"],
+        answer: "Tersimpan",
+        hint: "Assignment kedua mengganti teks sebelumnya.",
+      },
+      {
+        id: "js5-live",
+        kind: "live-code",
+        title: "Live Coding: Tombol Status",
+        prompt:
+          "Tulis kode yang memilih #simpan dan #status, lalu memasang event click untuk mengubah textContent.",
+        starter: `const tombol = document.querySelector("#simpan");
+const statusEl = document.querySelector("#status");
+
+`,
+        requirements: [
+          "Ada querySelector untuk tombol.",
+          "Ada addEventListener dengan event click.",
+          "Ada perubahan textContent.",
+        ],
+        checks: [
+          { label: "querySelector", pattern: "document\\.querySelector\\s*\\(" },
+          { label: "event click", pattern: "addEventListener\\s*\\(\\s*[\"']click[\"']" },
+          { label: "textContent", pattern: "\\.textContent\\s*=" },
+        ],
+        successMessage: "Interaksi DOM sudah valid.",
+        hint: "Gunakan tombol.addEventListener(\"click\", function () { statusEl.textContent = \"...\"; });",
+      },
+    ],
+  },
+  {
+    id: 206,
+    slug: "javascript-array-methods",
+    title: "Modul 6",
+    subtitle: "Array Methods",
+    focus: "map, filter, reduce, find, dan transformasi data",
+    minutes: 70,
+    level: "Lanjut",
+    color: "#4dd4ac",
+    icon: "file",
+    theory: [
+      "Method array membantu mengolah data tanpa menulis perulangan manual yang panjang.",
+      "map() mengubah setiap item menjadi bentuk baru dan menghasilkan array baru.",
+      "filter() memilih item yang memenuhi kondisi tertentu dan menghasilkan array baru.",
+      "reduce() menggabungkan banyak nilai menjadi satu hasil seperti total, rata-rata, atau ringkasan.",
+      "find() mengambil item pertama yang cocok dengan kondisi, cocok untuk mencari data detail.",
+      "Callback adalah function yang dikirim sebagai argumen ke method seperti map dan filter.",
+      "Array method tidak selalu mengubah array asli. Banyak method menghasilkan array baru sehingga lebih mudah dilacak.",
+      "Transformasi data sering dipakai sebelum data ditampilkan ke UI atau dikirim ke API.",
+    ],
+    skills: ["map()", "filter()", "reduce()"],
+    code: `const nilai = [80, 92, 75, 88];
+
+const kompeten = nilai.filter(function (item) {
+  return item >= 80;
+});
+
+const total = kompeten.reduce(function (jumlah, item) {
+  return jumlah + item;
+}, 0);
+
+console.log(total);`,
+    mission:
+      "Olah daftar nilai proyek siswa memakai map, filter, dan reduce.",
+    games: [
+      {
+        id: "js6-choice",
+        kind: "choice",
+        title: "Method Matcher",
+        prompt: "Method array mana yang memilih item sesuai kondisi?",
+        options: ["filter()", "map()", "push()", "join()"],
+        answer: "filter()",
+        hint: "Method ini menyaring data.",
+      },
+      {
+        id: "js6-sequence",
+        kind: "sequence",
+        title: "Reduce Pipeline",
+        prompt: "Susun kode agar total nilai dapat dihitung.",
+        options: [
+          `console.log(total);`,
+          `const total = nilai.reduce((jumlah, item) => jumlah + item, 0);`,
+          `const nilai = [80, 90, 100];`,
+        ],
+        answer: [
+          `const nilai = [80, 90, 100];`,
+          `const total = nilai.reduce((jumlah, item) => jumlah + item, 0);`,
+          `console.log(total);`,
+        ],
+        hint: "Array dibuat dulu, lalu dihitung, lalu ditampilkan.",
+      },
+      {
+        id: "js6-locate",
+        kind: "locate",
+        title: "Callback Bug",
+        prompt: "Klik baris yang membuat filter tidak mengembalikan kondisi.",
+        codeLines: [
+          { id: "1", label: "01", text: `const nilai = [70, 85, 90];` },
+          { id: "2", label: "02", text: `const kompeten = nilai.filter((item) => {` },
+          { id: "3", label: "03", text: `  item >= 80;` },
+          { id: "4", label: "04", text: `});` },
+        ],
+        answer: "3",
+        hint: "Callback dengan kurung kurawal perlu return eksplisit.",
+      },
+      {
+        id: "js6-output",
+        kind: "output",
+        title: "Map Output",
+        prompt: "Apa hasil array yang dibuat kode berikut?",
+        code: `const nilai = [1, 2, 3];
+const hasil = nilai.map((item) => item * 2);
+console.log(hasil);`,
+        options: ["[2, 4, 6]", "[1, 2, 3]", "6", "undefined"],
+        answer: "[2, 4, 6]",
+        hint: "map() mengubah setiap item menjadi item * 2.",
+      },
+      {
+        id: "js6-live",
+        kind: "live-code",
+        title: "Live Coding: Nilai Kompeten",
+        prompt:
+          "Tulis kode yang membuat array nilai, menyaring nilai >= 80 dengan filter, lalu menghitung total dengan reduce.",
+        starter: `const nilai = [80, 92, 75, 88];
+
+`,
+        requirements: [
+          "Ada array nilai.",
+          "Ada filter untuk nilai >= 80.",
+          "Ada reduce untuk menghitung total.",
+        ],
+        checks: [
+          { label: "array nilai", pattern: "const\\s+nilai\\s*=\\s*\\[[^\\]]+\\]" },
+          { label: "filter", pattern: "\\.filter\\s*\\(" },
+          { label: "reduce", pattern: "\\.reduce\\s*\\(" },
+        ],
+        successMessage: "Pengolahan array JavaScript sudah valid.",
+        hint: "Gunakan nilai.filter((item) => item >= 80).reduce((total, item) => total + item, 0).",
+      },
+    ],
+  },
+  {
+    id: 207,
+    slug: "javascript-async-api",
+    title: "Modul 7",
+    subtitle: "Async dan API",
+    focus: "Promise, async/await, fetch, JSON, dan error handling",
+    minutes: 75,
+    level: "Lanjut",
+    color: "#5ec7ff",
+    icon: "api",
+    theory: [
+      "Kode asynchronous dipakai ketika proses membutuhkan waktu, misalnya mengambil data dari API.",
+      "Promise mewakili hasil operasi yang akan selesai nanti, baik berhasil maupun gagal.",
+      "async function membuat function selalu mengembalikan Promise dan dapat memakai await di dalamnya.",
+      "await menunggu Promise selesai sebelum lanjut ke baris berikutnya di dalam async function.",
+      "fetch() mengirim request HTTP dan mengembalikan response yang perlu dibaca, misalnya dengan response.json().",
+      "try...catch dipakai untuk menangani error agar aplikasi tidak berhenti tanpa pesan yang jelas.",
+      "Response API perlu dicek statusnya karena request bisa selesai tetapi server mengembalikan error.",
+      "Loading state penting agar user tahu aplikasi sedang menunggu data dari server.",
+    ],
+    skills: ["async", "await", "fetch()"],
+    code: `async function ambilProfil() {
+  try {
+    const response = await fetch("/api/profile");
+    const data = await response.json();
+    console.log(data.nama);
+  } catch (error) {
+    console.log("Gagal mengambil profil");
+  }
+}
+
+ambilProfil();`,
+    mission:
+      "Ambil data profil siswa dari API memakai fetch, async/await, dan error handling.",
+    games: [
+      {
+        id: "js7-choice",
+        kind: "choice",
+        title: "Async Keyword",
+        prompt: "Keyword apa yang menunggu Promise selesai di dalam async function?",
+        options: ["await", "sleep", "pause", "hold"],
+        answer: "await",
+        hint: "Keyword ini hanya dipakai langsung di dalam async function atau module modern.",
+      },
+      {
+        id: "js7-sequence",
+        kind: "sequence",
+        title: "Fetch Pipeline",
+        prompt: "Susun langkah mengambil JSON dari API.",
+        options: [
+          `const data = await response.json();`,
+          `async function loadData() {`,
+          `const response = await fetch("/api/profile");`,
+        ],
+        answer: [
+          `async function loadData() {`,
+          `const response = await fetch("/api/profile");`,
+          `const data = await response.json();`,
+        ],
+        hint: "Function dibuat async dulu, lalu fetch, lalu response dibaca sebagai JSON.",
+      },
+      {
+        id: "js7-locate",
+        kind: "locate",
+        title: "Await Bug",
+        prompt: "Klik baris yang salah karena await dipakai di function biasa.",
+        codeLines: [
+          { id: "1", label: "01", text: `function loadData() {` },
+          { id: "2", label: "02", text: `  const response = await fetch("/api/profile");` },
+          { id: "3", label: "03", text: `  return response.json();` },
+          { id: "4", label: "04", text: `}` },
+        ],
+        answer: "2",
+        hint: "Function perlu diberi async jika memakai await di dalamnya.",
+      },
+      {
+        id: "js7-output",
+        kind: "output",
+        title: "JSON Reader",
+        prompt: "Property apa yang ditampilkan kode berikut?",
+        code: `const data = { nama: "Dina", kelas: "XII RPL" };
+console.log(data.nama);`,
+        options: ["Dina", "XII RPL", "nama", "undefined"],
+        answer: "Dina",
+        hint: "data.nama membaca property nama.",
+      },
+      {
+        id: "js7-live",
+        kind: "live-code",
+        title: "Live Coding: Fetch Profil",
+        prompt:
+          "Buat async function ambilProfil yang memakai await fetch, response.json(), dan try...catch.",
+        starter: `async function ambilProfil() {
+
+}
+
+`,
+        requirements: [
+          "Ada async function ambilProfil.",
+          "Ada await fetch().",
+          "Ada try dan catch.",
+        ],
+        checks: [
+          { label: "async function", pattern: "async\\s+function\\s+ambilProfil\\s*\\(" },
+          { label: "await fetch", pattern: "await\\s+fetch\\s*\\(" },
+          { label: "try catch", pattern: "\\btry\\b[\\s\\S]*\\bcatch\\b" },
+        ],
+        successMessage: "Fetch API JavaScript sudah valid.",
+        hint: "Gunakan try { const response = await fetch(\"/api/profile\"); } catch (error) { ... }",
+      },
+    ],
+  },
+  {
+    id: 208,
+    slug: "javascript-module-project",
+    title: "Modul 8",
+    subtitle: "Module Mini Project",
+    focus: "import, export, modularisasi, localStorage, dan integrasi UI",
+    minutes: 80,
+    level: "Lanjut",
+    color: "#37e5a5",
+    icon: "debug",
+    theory: [
+      "Module membantu memecah kode JavaScript menjadi beberapa file yang fokus pada tugas tertentu.",
+      "export membuat function, object, atau nilai dapat dipakai file lain.",
+      "import mengambil export dari file lain agar kode tidak perlu disalin.",
+      "Modularisasi membuat project lebih mudah diuji, dibaca, dan dikerjakan bersama tim.",
+      "localStorage dapat menyimpan data sederhana di browser, misalnya preferensi atau draft form.",
+      "JSON.stringify() mengubah object menjadi string sebelum disimpan ke localStorage.",
+      "JSON.parse() mengubah string JSON dari localStorage kembali menjadi object JavaScript.",
+      "Project kecil tetap butuh struktur folder dan penamaan file yang rapi agar mudah dikembangkan menjadi aplikasi nyata.",
+    ],
+    skills: ["import", "export", "localStorage"],
+    code: `export function simpanProfil(profil) {
+  const json = JSON.stringify(profil);
+  localStorage.setItem("profil-siswa", json);
+}
+
+export function ambilProfil() {
+  const json = localStorage.getItem("profil-siswa");
+  return json ? JSON.parse(json) : null;
+}`,
+    mission:
+      "Bangun mini project penyimpan profil siswa dengan module dan localStorage.",
+    games: [
+      {
+        id: "js8-choice",
+        kind: "choice",
+        title: "Module Export",
+        prompt: "Keyword apa yang membuat function bisa dipakai file JavaScript lain?",
+        options: ["export", "echo", "public", "send"],
+        answer: "export",
+        hint: "Keyword ini dipasangkan dengan import di file lain.",
+      },
+      {
+        id: "js8-sequence",
+        kind: "sequence",
+        title: "Storage Pipeline",
+        prompt: "Susun urutan menyimpan object profil ke localStorage.",
+        options: [
+          `localStorage.setItem("profil", json);`,
+          `const json = JSON.stringify(profil);`,
+          `const profil = { nama: "Raka" };`,
+        ],
+        answer: [
+          `const profil = { nama: "Raka" };`,
+          `const json = JSON.stringify(profil);`,
+          `localStorage.setItem("profil", json);`,
+        ],
+        hint: "Object dibuat, diubah menjadi string JSON, lalu disimpan.",
+      },
+      {
+        id: "js8-locate",
+        kind: "locate",
+        title: "Storage Bug",
+        prompt: "Klik baris yang salah karena object disimpan langsung tanpa JSON.stringify().",
+        codeLines: [
+          { id: "1", label: "01", text: `const profil = { nama: "Raka" };` },
+          { id: "2", label: "02", text: `localStorage.setItem("profil", profil);` },
+          { id: "3", label: "03", text: `const json = localStorage.getItem("profil");` },
+          { id: "4", label: "04", text: `console.log(json);` },
+        ],
+        answer: "2",
+        hint: "localStorage menyimpan string, jadi object perlu JSON.stringify().",
+      },
+      {
+        id: "js8-output",
+        kind: "output",
+        title: "JSON Parse",
+        prompt: "Apa nilai data.nama setelah JSON.parse()?",
+        code: `const json = '{"nama":"Dina"}';
+const data = JSON.parse(json);
+console.log(data.nama);`,
+        options: ["Dina", "nama", "{\"nama\":\"Dina\"}", "undefined"],
+        answer: "Dina",
+        hint: "JSON.parse() mengubah string menjadi object.",
+      },
+      {
+        id: "js8-live",
+        kind: "live-code",
+        title: "Live Coding: Profil Storage",
+        prompt:
+          "Tulis function simpanProfil yang memakai export, JSON.stringify, dan localStorage.setItem.",
+        starter: `export function simpanProfil(profil) {
+
+}
+`,
+        requirements: [
+          "Ada export function simpanProfil.",
+          "Ada JSON.stringify().",
+          "Ada localStorage.setItem().",
+        ],
+        checks: [
+          { label: "export function", pattern: "export\\s+function\\s+simpanProfil\\s*\\(" },
+          { label: "JSON stringify", pattern: "JSON\\.stringify\\s*\\(" },
+          { label: "localStorage setItem", pattern: "localStorage\\.setItem\\s*\\(" },
+        ],
+        successMessage: "Mini project module JavaScript sudah valid.",
+        hint: "Gunakan const json = JSON.stringify(profil); lalu localStorage.setItem(\"profil\", json);",
+      },
+    ],
+  },
+];
+
 export const lmsCourses: LmsCourse[] = [
   {
     id: "python",
     slug: "pemrograman-web",
-    title: "Pemrograman Web",
+    title: "Python",
     shortTitle: "Python",
     label: "Python",
     description:
@@ -1778,6 +2669,18 @@ export const lmsCourses: LmsCourse[] = [
     stack: "Python",
     level: "XII RPL",
     modules,
+  },
+  {
+    id: "javascript",
+    slug: "javascript",
+    title: "JavaScript",
+    shortTitle: "JavaScript",
+    label: "JavaScript",
+    description:
+      "Kelas JavaScript untuk membangun fondasi interaksi web, mulai dari sintaks dasar, DOM, async API, sampai mini project module.",
+    stack: "JavaScript",
+    level: "XII RPL",
+    modules: javascriptModules,
   },
   {
     id: "flutter",
@@ -1801,7 +2704,7 @@ export function getCourseBySlug(slug: string) {
 
 export const gamesPerModule = 5;
 
-export const totalLearningMinutes = modules.reduce(
+export const totalLearningMinutes = allModules.reduce(
   (total, item) => total + item.minutes,
   0,
 );

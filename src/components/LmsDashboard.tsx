@@ -247,6 +247,10 @@ function getAccentStyle(color: string): CSSProperties {
 }
 
 function getModuleFileExtension(moduleItem: LmsModule) {
+  if (moduleItem.id >= 200) {
+    return "js";
+  }
+
   return moduleItem.id >= 100 ? "dart" : "py";
 }
 
@@ -1033,7 +1037,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
                 Portal Dasar Pemrograman XII RPL
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-8 text-slate-300">
-                Akses course Python dan Flutter, mini game, dan live coding
+                Akses course Python, JavaScript, dan Flutter, mini game, dan live coding
                 dalam satu ruang belajar digital.
               </p>
             </div>
@@ -1141,7 +1145,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
               </div>
               <div className="border border-white/10 bg-white/[0.045] p-3">
                 <p className="text-xs uppercase text-slate-500">Course</p>
-                <p className="mt-1 font-semibold text-white">Python & Flutter</p>
+                <p className="mt-1 font-semibold text-white">Python, JavaScript & Flutter</p>
               </div>
             </div>
           </div>
@@ -1485,7 +1489,7 @@ function GuideModal({
     },
     {
       title: "2. Dashboard Course",
-      body: "Setelah login, kamu masuk ke dashboard. Di sana tersedia course Python dan Flutter. Klik tombol Masuk course untuk membuka halaman modul sesuai course yang dipilih.",
+      body: "Setelah login, kamu masuk ke dashboard. Di sana tersedia course Python, JavaScript, dan Flutter. Klik tombol Masuk course untuk membuka halaman modul sesuai course yang dipilih.",
     },
     {
       title: "3. Masuk Course",
@@ -1983,8 +1987,13 @@ function ModuleStage({
   averageScore: number;
 }) {
   const fileExtension = getModuleFileExtension(moduleItem);
-  const runtimeFileName =
-    course.id === "flutter" ? `flutter_runtime.${fileExtension}` : `python_runtime.${fileExtension}`;
+  const runtimePrefix =
+    course.id === "flutter"
+      ? "flutter"
+      : course.id === "javascript"
+        ? "javascript"
+        : "python";
+  const runtimeFileName = `${runtimePrefix}_runtime.${fileExtension}`;
 
   return (
     <section
