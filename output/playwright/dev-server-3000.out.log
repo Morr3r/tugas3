@@ -1,0 +1,49 @@
+
+> tugas3@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.26:3000
+- Environments: .env.local
+✓ Ready in 1543ms
+Creating turbopack project {
+  dir: 'C:\\Users\\naufa\\Downloads\\BJB\\Tugas\\tugas3',
+  testMode: true
+}
+
+ GET /dashboard 200 in 2.8s (next.js: 1910ms, application-code: 939ms)
+ GET /api/progress?student_id=UT123 200 in 3.2s (next.js: 291ms, application-code: 2.9s)
+ GET /api/assessment?student_id=UT123 200 in 395ms (next.js: 121ms, application-code: 275ms)
+✓ Compiled in 655ms
+ GET /dashboard 200 in 502ms (next.js: 261ms, application-code: 241ms)
+✓ Compiled in 514ms
+ GET /dashboard 200 in 544ms (next.js: 302ms, application-code: 242ms)
+✓ Compiled in 431ms
+ GET /dashboard 200 in 410ms (next.js: 269ms, application-code: 141ms)
+✓ Compiled in 382ms
+ GET /dashboard 200 in 336ms (next.js: 190ms, application-code: 146ms)
+✓ Compiled in 220ms
+ GET /dashboard 200 in 238ms (next.js: 158ms, application-code: 80ms)
+✓ Compiled in 264ms
+ GET /dashboard 200 in 354ms (next.js: 177ms, application-code: 177ms)
+✓ Compiled in 184ms
+ GET /dashboard 200 in 343ms (next.js: 176ms, application-code: 167ms)
+✓ Compiled in 884ms
+ GET /dashboard 200 in 432ms (next.js: 240ms, application-code: 193ms)
+✓ Compiled in 267ms
+ GET /dashboard 200 in 271ms (next.js: 174ms, application-code: 97ms)
+✓ Compiled in 339ms
+ GET /dashboard 200 in 329ms (next.js: 208ms, application-code: 121ms)
+✓ Compiled in 1144ms
+ GET /dashboard 200 in 717ms (next.js: 319ms, application-code: 398ms)
+✓ Compiled in 828ms
+ GET /dashboard 200 in 427ms (next.js: 311ms, application-code: 116ms)
+ GET /dashboard 200 in 1570ms (next.js: 9ms, application-code: 1560ms)
+✓ Compiled in 891ms
+ GET /dashboard 200 in 550ms (next.js: 424ms, application-code: 126ms)
+ GET /dashboard 200 in 421ms (next.js: 6ms, application-code: 414ms)
+✓ Compiled in 309ms
+ GET /dashboard 200 in 500ms (next.js: 194ms, application-code: 305ms)
+✓ Compiled in 511ms
+[?25h

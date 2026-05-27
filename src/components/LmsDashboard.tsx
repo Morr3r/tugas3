@@ -39,6 +39,7 @@ import {
   Play,
   RotateCcw,
   Route,
+  Search,
   Send,
   ShieldCheck,
   Shuffle,
@@ -51,6 +52,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   type CSSProperties,
@@ -75,7 +77,7 @@ import {
   type ModuleIcon,
   type SequenceGame,
 } from "@/lib/modules";
-import wallpaper from "@/assets/wallpaper.png";
+import type { LearningSpaceCourse } from "./LmsLearningSpace";
 
 type ProgressItem = {
   completed: boolean;
@@ -103,10 +105,43 @@ type AuthSession = {
   username: string;
   studentId: string;
 };
+type NavigatorWithConnection = Navigator & {
+  connection?: {
+    saveData?: boolean;
+  };
+};
 
 const AUTH_STORAGE_KEY = "lms-auth";
 const MAX_HINTS_PER_MODULE = 3;
 const MODULE_GAME_SECONDS = 15 * 60;
+const ImmersiveLearningSpace = dynamic(() => import("./LmsLearningSpace"), {
+  ssr: false,
+  loading: () => <LearningSpaceFallback />,
+});
+const ImmersiveLoginExperience = dynamic(() => import("./LmsLoginExperience"), {
+  ssr: false,
+  loading: () => <LoginSceneFallback />,
+});
+
+type CourseVisualTheme = {
+  color: string;
+  secondaryColor: string;
+};
+
+const courseVisualThemes: Record<string, CourseVisualTheme> = {
+  python: {
+    color: "#37e5a5",
+    secondaryColor: "#74d4ff",
+  },
+  javascript: {
+    color: "#f7c948",
+    secondaryColor: "#37e5a5",
+  },
+  flutter: {
+    color: "#5ec7ff",
+    secondaryColor: "#9a7cff",
+  },
+};
 
 const moduleIcons: Record<ModuleIcon, LucideIcon> = {
   syntax: Code2,
@@ -244,6 +279,45 @@ function getAccentStyle(color: string): CSSProperties {
   return {
     "--accent": color,
   } as CSSProperties;
+}
+
+function getCourseVisualTheme(courseId: string) {
+  return courseVisualThemes[courseId] ?? courseVisualThemes.python;
+}
+
+function useLearningSpace3d() {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    const connection = (navigator as NavigatorWithConnection).connection;
+
+    function updateMode() {
+      const lowCoreDevice =
+        typeof navigator.hardwareConcurrency === "number" &&
+        navigator.hardwareConcurrency > 0 &&
+        navigator.hardwareConcurrency <= 2;
+
+      setEnabled(
+        !reducedMotionQuery.matches &&
+          !mobileQuery.matches &&
+          !connection?.saveData &&
+          !lowCoreDevice,
+      );
+    }
+
+    updateMode();
+    reducedMotionQuery.addEventListener("change", updateMode);
+    mobileQuery.addEventListener("change", updateMode);
+
+    return () => {
+      reducedMotionQuery.removeEventListener("change", updateMode);
+      mobileQuery.removeEventListener("change", updateMode);
+    };
+  }, []);
+
+  return enabled;
 }
 
 function getModuleFileExtension(moduleItem: LmsModule) {
@@ -954,12 +1028,29 @@ export function LmsModuleDashboard({
 
 function RouteRedirectScreen({ label }: { label: string }) {
   return (
-    <main className="grid min-h-screen place-items-center overflow-hidden bg-[#08090e] text-slate-100">
-      <ProgrammerBackground variant="login" />
-      <div className="relative border border-white/10 bg-white/[0.055] px-5 py-4 text-sm text-slate-300 backdrop-blur-xl">
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#05070b] text-slate-100">
+      <div className="fixed inset-0 z-0" aria-hidden="true">
+        <ImmersiveLoginExperience />
+      </div>
+      <div className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_50%_50%,transparent_0%,rgba(5,7,11,0.18)_42%,rgba(5,7,11,0.76)_100%)]" />
+      <div className="relative z-10 border border-white/10 bg-[#071017]/72 px-5 py-4 text-sm text-slate-300 shadow-2xl shadow-black/45 backdrop-blur-xl">
         {label}
       </div>
     </main>
+  );
+}
+
+function LoginSceneFallback() {
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-[#05070b]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_38%_42%,rgba(55,229,165,0.18),transparent_30%),radial-gradient(circle_at_62%_50%,rgba(116,212,255,0.2),transparent_34%),linear-gradient(135deg,#05070b_0%,#07131a_48%,#05070b_100%)]" />
+      <div
+        className="absolute left-1/2 top-1/2 h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-sky-300/20 shadow-[0_0_90px_rgba(116,212,255,0.16)] motion-safe:animate-spin"
+        style={{ animationDuration: "18s" }}
+      />
+      <div className="absolute left-1/2 top-1/2 h-[25rem] w-[25rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-300/20 shadow-[0_0_80px_rgba(55,229,165,0.14)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:56px_56px] opacity-40" />
+    </div>
   );
 }
 
@@ -1006,7 +1097,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#08090e] text-slate-100">
+    <main className="relative min-h-screen overflow-hidden bg-[#05070b] text-slate-100">
       <AnimatePresence>
         {isSubmitting && (
           <LoadingScreen
@@ -1015,46 +1106,72 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
           />
         )}
       </AnimatePresence>
-      <ProgrammerBackground variant="login" />
+      <div className="fixed inset-0 z-0" aria-hidden="true" data-login-webgl>
+        <ImmersiveLoginExperience
+          focusedField={focusedField}
+          hasError={Boolean(error)}
+          isSubmitting={isSubmitting}
+          passwordLength={password.length}
+          showPassword={showPassword}
+          usernameLength={username.length}
+        />
+      </div>
+      <div className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_45%_42%,transparent_0%,rgba(5,7,11,0.08)_34%,rgba(5,7,11,0.76)_100%)]" />
+      <div className="pointer-events-none fixed inset-0 z-[2] bg-[linear-gradient(90deg,rgba(5,7,11,0.42)_0%,transparent_45%,rgba(5,7,11,0.64)_100%)]" />
+      <div className="pointer-events-none fixed inset-0 z-[3] bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:76px_76px] opacity-28" />
 
-      <section className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-8">
-        <div className="grid w-full overflow-hidden border border-white/10 bg-white/[0.055] shadow-2xl backdrop-blur-xl lg:min-h-[640px] lg:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]">
-          <div
-            className="relative hidden flex-col justify-between overflow-hidden border-r border-white/10 bg-cover bg-center p-8 lg:flex"
-            style={{
-              backgroundImage: `linear-gradient(120deg, rgba(8, 9, 14, 0.84), rgba(8, 9, 14, 0.58)), url(${wallpaper.src})`,
-            }}
-          >
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.055)_1px,transparent_1px)] bg-[size:42px_42px] opacity-35" />
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(55,229,165,0.24),transparent_28%),radial-gradient(circle_at_84%_12%,rgba(94,199,255,0.16),transparent_26%)]" />
-            <div className="relative z-10">
-              <div className="mb-10 inline-flex items-center gap-3 border border-emerald-300/30 bg-emerald-300/10 px-4 py-3 text-emerald-100">
-                <GraduationCap className="h-5 w-5" />
-                SMKN 13 Bandung
-              </div>
-              <p className="text-sm uppercase text-slate-500">Learning Management System</p>
-              <h1 className="mt-3 max-w-xl text-5xl font-semibold leading-tight text-white">
-                Portal Dasar Pemrograman XII RPL
-              </h1>
-              <p className="mt-5 max-w-lg text-lg leading-8 text-slate-300">
-                Akses course Python, JavaScript, dan Flutter, mini game, dan live coding
-                dalam satu ruang belajar digital.
+      <section className="pointer-events-none relative z-10 mx-auto grid min-h-screen w-full max-w-[1440px] items-center gap-6 px-4 py-6 md:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(390px,440px)] lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.65, ease: "easeOut" }}
+          className="hidden max-w-2xl lg:block"
+        >
+          <div className="inline-flex items-center gap-3 border border-emerald-300/30 bg-emerald-300/10 px-4 py-3 text-emerald-100 shadow-[0_0_42px_rgba(55,229,165,0.12)] backdrop-blur-xl">
+            <GraduationCap className="h-5 w-5" />
+            SMKN 13 Bandung
+          </div>
+          <p className="mt-10 text-sm uppercase tracking-[0.32em] text-slate-500">
+            Learning Management System
+          </p>
+          <h1 className="mt-4 max-w-[620px] text-5xl font-semibold leading-[1.04] text-white">
+            Portal LMS Dasar Pemrograman XII RPL
+          </h1>
+
+          <div className="mt-10 grid max-w-xl grid-cols-3 border border-white/10 bg-white/10 backdrop-blur-xl">
+            <div className="bg-[#050b10]/72 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Course</p>
+              <p className="mt-2 text-2xl font-semibold text-white">{lmsCourses.length}</p>
+            </div>
+            <div className="border-x border-white/10 bg-[#050b10]/72 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Game</p>
+              <p className="mt-2 text-2xl font-semibold text-white">
+                {allModules.length * gamesPerModule}
               </p>
             </div>
-
-            <div className="relative z-10 grid grid-cols-2 gap-3">
-              <MetricTile icon={BookOpen} label="Course" value={`${lmsCourses.length}`} />
-              <MetricTile icon={Gamepad2} label="Game" value={`${allModules.length * gamesPerModule}`} />
+            <div className="bg-[#050b10]/72 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Access</p>
+              <p className="mt-2 text-2xl font-semibold text-emerald-100">Live</p>
             </div>
           </div>
+        </motion.div>
 
-          <div className="flex min-h-[640px] flex-col justify-center bg-black/30 p-5 md:p-8">
+        <motion.div
+          initial={{ opacity: 0, x: 22, scale: 0.98 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
+          className="pointer-events-auto relative w-full max-w-[440px] justify-self-center overflow-hidden border border-white/10 bg-[#071017]/76 p-5 shadow-[0_28px_110px_rgba(0,0,0,0.46)] backdrop-blur-2xl md:p-7 lg:justify-self-end"
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(116,212,255,0.18),transparent_32%),radial-gradient(circle_at_90%_20%,rgba(55,229,165,0.14),transparent_28%)]" />
+          <div className="relative">
             <div className="mb-8 flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm uppercase text-slate-500">Secure access</p>
+                <p className="text-sm uppercase tracking-[0.26em] text-slate-500">
+                  Secure access
+                </p>
                 <h2 className="mt-2 text-3xl font-semibold text-white">Login</h2>
               </div>
-              <div className="grid h-12 w-12 place-items-center border border-sky-300/30 bg-sky-300/10 text-sky-100">
+              <div className="grid h-12 w-12 shrink-0 place-items-center border border-sky-300/30 bg-sky-300/10 text-sky-100 shadow-[0_0_35px_rgba(116,212,255,0.18)]">
                 <ShieldCheck className="h-6 w-6" />
               </div>
             </div>
@@ -1067,7 +1184,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
                 >
                   Username
                 </label>
-                <div className="flex items-center border border-white/10 bg-white/[0.055] px-3 focus-within:border-emerald-300/50">
+                <div className="flex items-center border border-white/10 bg-white/[0.07] px-3 transition focus-within:border-emerald-300/50 focus-within:bg-white/[0.095]">
                   <UserRound className="h-5 w-5 shrink-0 text-slate-500" />
                   <input
                     id="login-username"
@@ -1081,6 +1198,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
                     className="login-input h-12 min-w-0 flex-1 bg-transparent px-3 text-white outline-none placeholder:text-slate-600 focus-visible:outline-none"
                     placeholder={focusedField === "username" ? "" : "Masukkan username"}
                     autoComplete="username"
+                    required
                   />
                 </div>
               </div>
@@ -1092,7 +1210,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
                 >
                   Password
                 </label>
-                <div className="flex items-center border border-white/10 bg-white/[0.055] px-3 focus-within:border-emerald-300/50">
+                <div className="flex items-center border border-white/10 bg-white/[0.07] px-3 transition focus-within:border-emerald-300/50 focus-within:bg-white/[0.095]">
                   <KeyRound className="h-5 w-5 shrink-0 text-slate-500" />
                   <input
                     id="login-password"
@@ -1107,6 +1225,7 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
                     className="login-input h-12 min-w-0 flex-1 bg-transparent px-3 text-white outline-none placeholder:text-slate-600 focus-visible:outline-none"
                     placeholder={focusedField === "password" ? "" : "Masukkan password"}
                     autoComplete="current-password"
+                    required
                   />
                   <button
                     type="button"
@@ -1131,25 +1250,27 @@ function LoginScreen({ onLogin }: { onLogin: (session: AuthSession) => void }) {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 border border-emerald-300/40 bg-emerald-300 px-5 font-semibold text-slate-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 border border-emerald-300/50 bg-emerald-300 px-5 font-semibold text-slate-950 shadow-[0_16px_48px_rgba(55,229,165,0.18)] transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <LogIn className="h-5 w-5" />
                 {isSubmitting ? "Memeriksa akun..." : "Masuk ke LMS"}
               </button>
             </form>
 
-            <div className="mt-6 grid gap-3 border-t border-white/10 pt-6 sm:grid-cols-2">
-              <div className="border border-white/10 bg-white/[0.045] p-3">
-                <p className="text-xs uppercase text-slate-500">Role</p>
-                <p className="mt-1 font-semibold text-white">Siswa XII RPL</p>
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <div className="flex items-center justify-between gap-3 py-2">
+                <span className="text-xs uppercase tracking-[0.24em] text-slate-500">Role</span>
+                <span className="text-right text-sm font-semibold text-white">Siswa XII RPL</span>
               </div>
-              <div className="border border-white/10 bg-white/[0.045] p-3">
-                <p className="text-xs uppercase text-slate-500">Course</p>
-                <p className="mt-1 font-semibold text-white">Python, JavaScript & Flutter</p>
+              <div className="flex items-center justify-between gap-3 border-t border-white/10 py-2">
+                <span className="text-xs uppercase tracking-[0.24em] text-slate-500">Course</span>
+                <span className="text-right text-sm font-semibold text-white">
+                  Python, JavaScript & Flutter
+                </span>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
     </main>
   );
@@ -1173,6 +1294,10 @@ function CourseOverview({
   username: string;
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [activeCourseId, setActiveCourseId] = useState<string | null>(lmsCourses[0]?.id ?? null);
+  const [courseSearchQuery, setCourseSearchQuery] = useState("");
+  const [entryVisible, setEntryVisible] = useState(true);
+  const is3dEnabled = useLearningSpace3d();
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1211,19 +1336,119 @@ function CourseOverview({
     };
   }
 
-  return (
-    <main className="min-h-screen overflow-hidden bg-[#08090e] text-slate-100">
-      <ProgrammerBackground variant="dashboard" />
+  const spaceCourses: LearningSpaceCourse[] = lmsCourses.map((course) => {
+    const courseProgress = getCourseProgress(course);
+    const visual = getCourseVisualTheme(course.id);
 
-      <div className="relative mx-auto min-h-screen w-full max-w-7xl px-4 py-5 md:px-6">
-        <header className="relative z-50 mb-6 flex flex-col gap-4 border border-white/10 bg-white/[0.055] p-4 backdrop-blur-xl md:flex-row md:items-center md:justify-between">
+    return {
+      id: course.id,
+      slug: course.slug,
+      shortTitle: course.shortTitle,
+      stack: course.stack,
+      level: course.level,
+      moduleCount: course.modules.length,
+      completedCount: courseProgress.completedCount,
+      completionRate: courseProgress.completionRate,
+      color: visual.color,
+      secondaryColor: visual.secondaryColor,
+    };
+  });
+  const normalizedCourseSearchQuery = courseSearchQuery.trim().toLowerCase();
+  const filteredCourses = useMemo(
+    () =>
+      lmsCourses.filter((course) => {
+        if (!normalizedCourseSearchQuery) {
+          return true;
+        }
+
+        const searchableText = [
+          course.title,
+          course.shortTitle,
+          course.description,
+          course.stack,
+          course.level,
+          course.modules
+            .map((moduleItem) =>
+              [
+                moduleItem.title,
+                moduleItem.subtitle,
+                moduleItem.focus,
+                moduleItem.skills.join(" "),
+              ].join(" "),
+            )
+            .join(" "),
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedCourseSearchQuery);
+      }),
+    [normalizedCourseSearchQuery],
+  );
+  const searchResultLabel = `${filteredCourses.length}/${lmsCourses.length} course`;
+  const visibleActiveCourseId =
+    normalizedCourseSearchQuery &&
+    filteredCourses.length > 0 &&
+    !filteredCourses.some((course) => course.id === activeCourseId)
+      ? filteredCourses[0].id
+      : activeCourseId;
+  const activeCourse =
+    spaceCourses.find((course) => course.id === visibleActiveCourseId) ?? spaceCourses[0]!;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setEntryVisible(false), is3dEnabled ? 1650 : 950);
+
+    return () => window.clearTimeout(timer);
+  }, [is3dEnabled]);
+
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-[#05070b] text-slate-100">
+      <ProgrammerBackground variant="dashboard" />
+      <div className="fixed inset-0 z-[1]">
+        {is3dEnabled ? (
+          <ImmersiveLearningSpace
+            activeCourseId={activeCourse.id}
+            courses={spaceCourses}
+            onEnterCourse={onEnterCourse}
+            onHoverCourse={setActiveCourseId}
+          />
+        ) : (
+          <LearningSpaceFallback />
+        )}
+      </div>
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-[2] h-56 bg-gradient-to-t from-[#05070b] via-[#05070b]/82 to-transparent"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none fixed inset-y-0 left-0 z-[3] w-full md:w-[68vw]"
+        style={{
+          background:
+            "linear-gradient(90deg, #05070b 0%, rgba(5,7,11,0.96) 52%, rgba(5,7,11,0.74) 72%, transparent 100%)",
+        }}
+        aria-hidden="true"
+      />
+
+      <AnimatePresence>
+        {entryVisible && (
+          <LearningSpaceEntry
+            is3dEnabled={is3dEnabled}
+            onEnter={() => setEntryVisible(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10 mx-auto min-h-screen w-full max-w-7xl px-4 pb-12 pt-5 md:px-6">
+        <header className="fixed inset-x-4 top-3 z-50 mx-auto flex max-w-[calc(80rem-2rem)] flex-col gap-4 border border-white/10 bg-[#05070b]/[0.72] p-4 shadow-2xl shadow-black/35 backdrop-blur-xl md:inset-x-6 md:max-w-[calc(80rem-3rem)] md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center border border-emerald-300/30 bg-emerald-300/10 text-emerald-100">
+            <div className="grid h-12 w-12 place-items-center border border-emerald-300/30 bg-emerald-300/10 text-emerald-100 shadow-[0_0_28px_rgba(55,229,165,0.16)]">
               <GraduationCap className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xs uppercase text-slate-500">SMKN 13 Bandung</p>
-              <h1 className="text-xl font-semibold text-white">Portal Dasar Pemrograman XII RPL</h1>
+              <p className="text-xs uppercase tracking-[0.28em] text-slate-500">
+                SMKN 13 Bandung
+              </p>
+              <h1 className="text-xl font-semibold text-white">Portal LMS XII RPL</h1>
             </div>
           </div>
 
@@ -1314,50 +1539,197 @@ function CourseOverview({
             )}
           </div>
         </header>
+        <div className="h-36 md:h-20" aria-hidden="true" />
 
-        <section className="grid gap-5">
-          <div className="space-y-5">
-            <div className="border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl md:p-8">
-              <div className="mb-6 flex flex-wrap items-center gap-2">
-                <span className="border border-sky-300/30 bg-sky-300/10 px-3 py-1 text-sm text-sky-100">
-                  Course hub
-                </span>
-                <span className="border border-white/10 bg-black/20 px-3 py-1 text-sm text-slate-300">
-                  {lmsCourses.length} course tersedia
-                </span>
-                <span className="border border-white/10 bg-black/20 px-3 py-1 text-sm text-slate-300">
-                  XII RPL
-                </span>
+        <section className="grid min-h-[calc(100vh-96px)] items-center gap-6 py-10 lg:grid-cols-[minmax(0,1fr)_390px] lg:py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18, duration: 0.55, ease: "easeOut" }}
+            className="max-w-4xl"
+          >
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              <span className="border border-sky-300/30 bg-sky-300/10 px-3 py-1.5 text-sm text-sky-100 backdrop-blur">
+                Course hub
+              </span>
+              <span className="border border-white/10 bg-black/25 px-3 py-1.5 text-sm text-slate-300 backdrop-blur">
+                {lmsCourses.length} portal aktif
+              </span>
+            </div>
+
+            <h2 className="mt-3 max-w-4xl text-4xl font-semibold leading-tight text-white md:text-6xl">
+              Pilih Portal Belajar di LMS XII RPL.
+            </h2>
+
+            <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-3">
+              <MetricTile icon={CircleDot} label="Portal" value={`${lmsCourses.length} course`} />
+              <MetricTile icon={Trophy} label="Progress" value={`${completionRate}%`} />
+              <MetricTile
+                icon={BookOpen}
+                label="Modul"
+                value={`${completedCount}/${allModules.length} selesai`}
+              />
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onEnterCourse(activeCourse.slug)}
+                className="inline-flex min-h-12 items-center justify-center gap-2 border border-emerald-300/40 bg-emerald-300 px-5 py-3 font-semibold text-slate-950 shadow-[0_0_38px_rgba(55,229,165,0.18)] transition hover:bg-emerald-200"
+              >
+                <Play className="h-4 w-4" />
+                Masuk {activeCourse.shortTitle}
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  document
+                    .getElementById("course-portals")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="inline-flex min-h-12 items-center justify-center gap-2 border border-white/[0.12] bg-white/[0.065] px-5 py-3 font-semibold text-slate-100 backdrop-blur transition hover:border-white/[0.28] hover:bg-white/[0.1]"
+              >
+                <MousePointer2 className="h-4 w-4" />
+                Lihat semua portal
+              </button>
+            </div>
+          </motion.div>
+
+          <motion.aside
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28, duration: 0.55, ease: "easeOut" }}
+            className="border border-white/10 bg-[#05070b]/[0.66] p-4 shadow-2xl shadow-black/[0.35] backdrop-blur-xl"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+                  Active portal
+                </p>
+                <h3 className="mt-1 text-2xl font-semibold text-white">
+                  {activeCourse.shortTitle}
+                </h3>
               </div>
-              <div className="grid items-end gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
-                <div>
-                  <p className="text-sm uppercase text-slate-500">Learning cockpit</p>
-                  <h2 className="mt-2 max-w-3xl text-4xl font-semibold leading-tight text-white md:text-5xl">
-                    Pilih ruang belajar untuk mulai belajar bahasa pemrograman.
-                  </h2>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                    Portal ini dibuat khusus untuk siswa XII RPL dengan beberapa course bahasa pemrograman yang masing-masing berisi 8 modul interaktif lengkap dengan mini game dan live coding.
-                  </p>
-                </div>
-                <div className="border border-white/10 bg-black/25 p-4">
-                  <p className="text-sm text-slate-400">Progress keseluruhan</p>
-                  <p className="mt-2 text-4xl font-semibold text-white">{completionRate}%</p>
-                  <div className="mt-4 h-2 bg-white/10">
-                    <div
-                      className="h-full bg-emerald-300"
-                      style={{ width: `${completionRate}%` }}
+              <ProgressRing value={activeCourse.completionRate} color={activeCourse.color} />
+            </div>
+
+            <div className="grid gap-3">
+              {spaceCourses.map((course) => {
+                const isActive = course.id === activeCourse.id;
+
+                return (
+                  <button
+                    key={course.id}
+                    type="button"
+                    onClick={() => onEnterCourse(course.slug)}
+                    onFocus={() => setActiveCourseId(course.id)}
+                    onMouseEnter={() => setActiveCourseId(course.id)}
+                    className={cx(
+                      "group grid min-h-24 grid-cols-[1fr_auto] items-center gap-3 border p-4 text-left transition hover:-translate-y-0.5",
+                      isActive
+                        ? "border-white/[0.28] bg-white/[0.105] shadow-[0_0_32px_rgba(116,212,255,0.1)]"
+                        : "border-white/10 bg-black/[0.28] hover:border-white/[0.24] hover:bg-white/[0.07]",
+                    )}
+                    style={
+                      isActive
+                        ? {
+                            borderColor: `${course.color}66`,
+                            boxShadow: `0 0 38px ${course.color}1f`,
+                          }
+                        : undefined
+                    }
+                  >
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{
+                            background: course.color,
+                            boxShadow: `0 0 18px ${course.color}`,
+                          }}
+                        />
+                        {course.shortTitle}
+                      </span>
+                      <span className="mt-2 block text-sm leading-5 text-slate-400">
+                        {course.completedCount}/{course.moduleCount} modul selesai
+                      </span>
+                    </span>
+                    <ChevronRight
+                      className={cx(
+                        "h-5 w-5 text-slate-500 transition group-hover:translate-x-0.5",
+                        isActive && "text-white",
+                      )}
                     />
-                  </div>
-                  <p className="mt-3 text-sm text-slate-400">
-                    {completedCount}/{allModules.length} modul selesai
-                  </p>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.aside>
+        </section>
+
+        <section id="course-portals" className="relative z-10 scroll-mt-6 pb-14">
+          <div className="mb-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(340px,460px)] lg:items-end">
+            <div>
+              <p className="text-sm uppercase tracking-[0.28em] text-slate-500">
+                Course portals
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold text-white md:text-4xl">
+                Pilih ruang belajar
+              </h2>
+            </div>
+
+            <div className="relative overflow-hidden border border-white/10 bg-[#061018]/80 p-3 shadow-[0_18px_60px_rgba(0,0,0,0.3)] backdrop-blur-xl">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(116,212,255,0.2),transparent_32%),radial-gradient(circle_at_92%_72%,rgba(55,229,165,0.14),transparent_30%)]" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/55 to-transparent" />
+              <div className="relative">
+                <label
+                  htmlFor="course-search"
+                  className="mb-2 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.24em] text-slate-500"
+                >
+                  <span>Cari course</span>
+                  <span className="text-sky-100">{searchResultLabel}</span>
+                </label>
+                <div className="flex min-h-12 items-center gap-3 border border-white/10 bg-black/30 px-3 transition focus-within:border-sky-300/55 focus-within:bg-white/[0.085] focus-within:shadow-[0_0_34px_rgba(116,212,255,0.13)]">
+                  <Search className="h-5 w-5 shrink-0 text-sky-200" />
+                  <input
+                    id="course-search"
+                    value={courseSearchQuery}
+                    onChange={(event) => setCourseSearchQuery(event.target.value)}
+                    className="course-search-input h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-600"
+                    placeholder="Python, JavaScript, Flutter..."
+                    type="search"
+                    autoComplete="off"
+                  />
+                  {courseSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setCourseSearchQuery("")}
+                      className="grid h-8 w-8 shrink-0 place-items-center border border-white/10 bg-white/[0.055] text-slate-400 transition hover:border-rose-200/40 hover:text-rose-100"
+                      aria-label="Bersihkan pencarian course"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2 border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-xs font-semibold text-emerald-100">
+                    <CircleDot className="h-3.5 w-3.5" />
+                    Progress {completionRate}%
+                  </span>
+                  <span className="border border-white/10 bg-black/25 px-3 py-1.5 text-xs font-semibold text-slate-300">
+                    {normalizedCourseSearchQuery ? "Filter aktif" : "Semua course"}
+                  </span>
                 </div>
               </div>
             </div>
+          </div>
 
+          {filteredCourses.length > 0 ? (
             <div className="grid gap-5">
-              {lmsCourses.map((course) => {
+              {filteredCourses.map((course) => {
                 const courseProgress = getCourseProgress(course);
+                const visual = getCourseVisualTheme(course.id);
 
                 return (
                   <CourseCard
@@ -1365,16 +1737,99 @@ function CourseOverview({
                     completionRate={courseProgress.completionRate}
                     completedCount={courseProgress.completedCount}
                     course={course}
+                    isActive={course.id === activeCourse.id}
                     onEnterCourse={onEnterCourse}
+                    onPreviewCourse={setActiveCourseId}
+                    visual={visual}
                   />
                 );
               })}
             </div>
-          </div>
-
+          ) : (
+            <div className="relative overflow-hidden border border-white/10 bg-[#061018]/72 p-6 text-center shadow-2xl shadow-black/25 backdrop-blur-xl">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(251,191,36,0.08),transparent_34%),radial-gradient(circle_at_50%_0%,rgba(116,212,255,0.12),transparent_32%)]" />
+              <div className="relative mx-auto grid max-w-md place-items-center">
+                <div className="mb-4 grid h-14 w-14 place-items-center border border-sky-300/25 bg-sky-300/10 text-sky-100 shadow-[0_0_32px_rgba(116,212,255,0.14)]">
+                  <Search className="h-6 w-6" />
+                </div>
+                <h3 className="text-2xl font-semibold text-white">Course tidak ditemukan</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Coba kata kunci lain atau bersihkan filter pencarian.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setCourseSearchQuery("")}
+                  className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 border border-emerald-300/40 bg-emerald-300 px-4 py-2 font-semibold text-slate-950 transition hover:bg-emerald-200"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset filter
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </main>
+  );
+}
+
+function LearningSpaceEntry({
+  is3dEnabled,
+  onEnter,
+}: {
+  is3dEnabled: boolean;
+  onEnter: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.38, ease: "easeOut" }}
+      className="fixed inset-0 z-[180] grid place-items-center bg-[#020407]/90 px-4 text-slate-100 backdrop-blur-2xl"
+      role="status"
+      aria-live="polite"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+        transition={{ duration: 0.42, ease: "easeOut" }}
+        className="w-full max-w-md border border-white/10 bg-white/[0.055] p-6 text-center shadow-2xl shadow-black/45"
+      >
+        <div className="mx-auto mb-5 grid h-20 w-20 place-items-center border border-emerald-300/25 bg-emerald-300/10 shadow-[0_0_42px_rgba(55,229,165,0.16)]">
+          <Network className="h-8 w-8 text-emerald-100" />
+        </div>
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+          {is3dEnabled ? "WebGL ready" : "Responsive mode"}
+        </p>
+        <h2 className="mt-3 text-3xl font-semibold text-white">Enter Portal LMS</h2>
+        <p className="mt-3 leading-6 text-slate-300">
+          Menyiapkan portal course, progress, dan ruang belajar interaktif.
+        </p>
+        <button
+          type="button"
+          onClick={onEnter}
+          className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 border border-emerald-300/40 bg-emerald-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-200"
+        >
+          <Play className="h-4 w-4" />
+          Enter Portal LMS
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function LearningSpaceFallback() {
+  return (
+    <div className="learning-space-fallback h-full w-full" aria-hidden="true">
+      <div className="learning-space-grid" />
+      <div className="learning-space-orbit learning-space-orbit-1" />
+      <div className="learning-space-orbit learning-space-orbit-2" />
+      <div className="learning-space-orbit learning-space-orbit-3" />
+      <div className="learning-space-beam learning-space-beam-1" />
+      <div className="learning-space-beam learning-space-beam-2" />
+    </div>
   );
 }
 
@@ -1382,51 +1837,109 @@ function CourseCard({
   completionRate,
   completedCount,
   course,
+  isActive,
   onEnterCourse,
+  onPreviewCourse,
+  visual,
 }: {
   completionRate: number;
   completedCount: number;
   course: LmsCourse;
+  isActive: boolean;
   onEnterCourse: (courseSlug: string) => void;
+  onPreviewCourse: (courseId: string | null) => void;
+  visual: CourseVisualTheme;
 }) {
   const courseHeroStyle =
     course.id === "python"
       ? ({
           backgroundImage:
-            "linear-gradient(180deg, rgba(9, 20, 18, 0.18), rgba(9, 20, 18, 0.68)), url('/Python.svg'), url('/Python.png')",
+            `linear-gradient(180deg, rgba(5, 7, 11, 0.22), rgba(5, 7, 11, 0.86)), radial-gradient(circle at 20% 16%, ${visual.color}44, transparent 34%), url('/Python.svg'), url('/Python.png')`,
+          backgroundSize: "cover, cover, 62%, 80%",
+          backgroundPosition: "center, center, 64% 35%, 50% 65%",
+          backgroundRepeat: "no-repeat",
         } as CSSProperties)
       : course.id === "flutter"
         ? ({
             backgroundImage:
-              "linear-gradient(180deg, rgba(9, 20, 18, 0.18), rgba(9, 20, 18, 0.68)), url('/flutter.png')",
+              `linear-gradient(180deg, rgba(5, 7, 11, 0.24), rgba(5, 7, 11, 0.86)), radial-gradient(circle at 28% 18%, ${visual.color}44, transparent 34%), url('/flutter.png')`,
+            backgroundSize: "cover, cover, 72%",
+            backgroundPosition: "center, center, 50% 55%",
+            backgroundRepeat: "no-repeat",
           } as CSSProperties)
+        : course.id === "javascript"
+          ? ({
+              backgroundImage:
+                `linear-gradient(180deg, rgba(5, 7, 11, 0.42), rgba(5, 7, 11, 0.9)), repeating-linear-gradient(115deg, transparent 0 18px, rgba(255, 255, 255, 0.12) 18px 19px, transparent 19px 34px), radial-gradient(circle at 24% 18%, ${visual.color}3d, transparent 34%), radial-gradient(circle at 82% 74%, ${visual.secondaryColor}26, transparent 34%), url('/javascript.png')`,
+              backgroundSize: "cover, 34px 34px, cover, cover, 78%",
+              backgroundPosition: "center, center, center, center, 54% 48%",
+              backgroundRepeat: "no-repeat, repeat, no-repeat, no-repeat, no-repeat",
+            } as CSSProperties)
       : undefined;
 
   return (
-    <article className="group overflow-hidden border border-white/10 bg-white/[0.06] backdrop-blur-xl transition hover:border-emerald-300/35">
-      <div className="grid gap-5 p-5 md:grid-cols-[260px_minmax(0,1fr)_220px] md:p-6">
+    <article
+      onFocusCapture={() => onPreviewCourse(course.id)}
+      onMouseEnter={() => onPreviewCourse(course.id)}
+      onMouseLeave={() => onPreviewCourse(null)}
+      className={cx(
+        "group overflow-hidden border bg-[#05070b]/[0.68] shadow-2xl shadow-black/[0.28] backdrop-blur-xl transition hover:-translate-y-1",
+        isActive ? "border-white/30" : "border-white/10 hover:border-white/[0.24]",
+      )}
+      style={
+        isActive
+          ? {
+              borderColor: `${visual.color}66`,
+              boxShadow: `0 0 46px ${visual.color}1e, 0 24px 80px rgba(0,0,0,0.36)`,
+            }
+          : undefined
+      }
+    >
+      <div className="grid gap-0 lg:grid-cols-[300px_minmax(0,1fr)_250px]">
         <div
-          className="relative min-h-56 overflow-hidden border border-emerald-300/20 bg-[#10211f] bg-cover bg-center"
+          className="relative min-h-72 overflow-hidden border-b border-white/10 bg-[#07111b] bg-cover bg-center lg:border-b-0 lg:border-r"
           style={courseHeroStyle}
         >
           {!courseHeroStyle && (
             <>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,rgba(55,229,165,0.28),transparent_26%),radial-gradient(circle_at_80%_72%,rgba(94,199,255,0.2),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.1),transparent_45%)]" />
-              <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0_45%,rgba(255,255,255,0.1)_45%_48%,transparent_48%_100%)] bg-[size:34px_34px]" />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `radial-gradient(circle at 22% 20%, ${visual.color}44, transparent 30%), radial-gradient(circle at 80% 72%, ${visual.secondaryColor}36, transparent 32%), linear-gradient(135deg, rgba(255,255,255,0.1), transparent 48%)`,
+                }}
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0_45%,rgba(255,255,255,0.11)_45%_48%,transparent_48%_100%)] bg-[size:34px_34px]" />
             </>
           )}
-          <div className="absolute left-5 top-5 inline-flex items-center gap-2 border border-white/15 bg-black/30 px-3 py-2 text-sm text-emerald-100">
+          <div className="absolute inset-5 border border-white/10 bg-black/10" />
+          <div
+            className="absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+            style={{
+              borderColor: `${visual.color}66`,
+              boxShadow: `0 0 42px ${visual.color}26`,
+            }}
+          />
+          <div className="absolute left-5 top-5 inline-flex items-center gap-2 border border-white/15 bg-black/35 px-3 py-2 text-sm text-white backdrop-blur">
             <Code2 className="h-4 w-4" />
             {course.stack}
           </div>
           <div className="absolute bottom-5 left-5 right-5">
-            <p className="text-sm text-emerald-100/80">{course.level}</p>
+            <p className="text-sm text-slate-300">{course.level}</p>
             <p className="mt-1 text-3xl font-semibold text-white">{course.shortTitle}</p>
           </div>
         </div>
 
-        <div className="min-w-0 py-1">
+        <div className="min-w-0 p-5 md:p-6">
           <div className="mb-4 flex flex-wrap gap-2">
+            <span
+              className="border bg-black/25 px-3 py-1 text-sm font-semibold"
+              style={{
+                borderColor: `${visual.color}38`,
+                color: visual.color,
+              }}
+            >
+              Portal course
+            </span>
             <span className="border border-white/10 bg-black/25 px-3 py-1 text-sm text-slate-300">
               {course.modules.length} modul
             </span>
@@ -1442,14 +1955,14 @@ function CourseCard({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between border border-white/10 bg-black/25 p-4">
+        <div className="flex flex-col justify-between border-t border-white/10 bg-black/30 p-5 lg:border-l lg:border-t-0">
           <div>
             <p className="text-sm text-slate-400">Course progress</p>
             <p className="mt-2 text-4xl font-semibold text-white">{completionRate}%</p>
             <div className="mt-4 h-2 bg-white/10">
               <div
-                className="h-full bg-emerald-300"
-                style={{ width: `${completionRate}%` }}
+                className="h-full transition-all duration-500"
+                style={{ width: `${completionRate}%`, background: visual.color }}
               />
             </div>
             <p className="mt-3 text-sm text-slate-400">
@@ -1459,7 +1972,11 @@ function CourseCard({
           <button
             type="button"
             onClick={() => onEnterCourse(course.slug)}
-            className="mt-6 inline-flex items-center justify-center gap-2 border border-emerald-300/40 bg-emerald-300 px-4 py-3 font-semibold text-slate-950 transition hover:bg-emerald-200"
+            className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 border px-4 py-3 font-semibold text-slate-950 transition hover:brightness-110"
+            style={{
+              borderColor: visual.color,
+              background: visual.color,
+            }}
           >
             <Play className="h-4 w-4" />
             Masuk course
